@@ -10,9 +10,9 @@ export default defineConfig({
 
   build: {
     lib: {
-      entry: resolve(__dirname, 'lib'),
-      name: 'swr',
-      fileName: (format) => `swr.${format}.js`,
+      entry: resolve(__dirname, 'lib/index.ts'),
+      name: 'swr-vue',
+      fileName: (format) => `swr-vue.${format}.js`,
     },
 
     rollupOptions: {
