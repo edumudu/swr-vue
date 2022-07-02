@@ -1,0 +1,1 @@
+export const MapAdapter = Map;
