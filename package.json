@@ -1,11 +1,17 @@
 {
   "name": "swr-vue",
-  "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "author": "Eduardo Wesley <eduardomudutiu@gmail.com>",
+  "description": "Vue composables for Data fetching",
   "license": "MIT",
-  "packageManager": "pnpm@6.11.0",
-  "engines": {
-    "node": "16"
+  "packageManager": "pnpm@7.3.0",
+  "homepage": "https://github.com/edumudu/swr-vue#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/edumudu/swr-vue.git"
+  },
+  "bugs": {
+    "url": "https://github.com/edumudu/swr-vue/issues"
   },
   "files": [
     "dist"
@@ -25,6 +31,7 @@
     "prepare": "husky install",
     "generate:release": "semantic-release",
     "preview": "vite preview",
+    "lint:js": "eslint . --ext js,ts,jsx,tsx,vue --ignore-path .gitignore",
     "test:unit": "vitest run",
     "test:unit:watch": "vitest watch"
   },
@@ -52,6 +59,7 @@
     "jsdom": "^20.0.0",
     "lint-staged": "^13.0.3",
     "prettier": "^2.7.1",
+    "semantic-release": "^19.0.3",
     "typescript": "^4.6.4",
     "vite": "^2.9.13",
     "vite-tsconfig-paths": "^3.5.0",
@@ -70,5 +78,17 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "keywords": [
+    "swr",
+    "vue",
+    "composables",
+    "cache",
+    "fetch",
+    "request",
+    "stale-while-revalidate"
+  ],
+  "engines": {
+    "node": "16"
   }
 }
