@@ -1,6 +1,6 @@
-const table = new WeakMap<any, string>();
+import { isDate } from '@/utils/check-types';
 
-const isDate = (date: any): date is Date => date.constructor === Date;
+const table = new WeakMap<any, string>();
 
 export const hash = (valueToHash: any): string => {
   const saveHashAndReturn = (hashedVal: string) => {
