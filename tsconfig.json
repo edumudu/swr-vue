@@ -18,6 +18,7 @@
     "paths": {
       "@/*": ["lib/*"],
     },
+    "types": ["vite/client", "vitest/globals"],
     "declarationDir": "./dist/types",
     "declaration": true,
   },
