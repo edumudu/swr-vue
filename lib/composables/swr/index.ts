@@ -81,6 +81,6 @@ export const useSWR = <Data = any, Error = any>(
     data: readonly(data),
     error: readonly(error),
     isValidating: readonly(isValidating),
-    mutate: (newValue: any) => mutateGlobal(key.value, newValue),
+    mutate: (newValue: Data) => mutateGlobal(key.value, newValue),
   };
 };
