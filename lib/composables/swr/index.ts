@@ -55,29 +55,19 @@ export const useSWR = <Data = any, Error = any>(
     }
   };
 
-  if (revalidateOnFocus) {
-    useEventListener(window, 'focus', () => {
-      if (revalidateIfStale || !data.value) {
-        fetchData();
-      }
-    });
+  if (revalidateOnFocus && (revalidateIfStale || !data.value)) {
+    useEventListener(window, 'focus', () => fetchData());
   }
 
-  if (revalidateOnReconnect) {
-    useEventListener(window, 'online', () => {
-      if (revalidateIfStale || !data.value) {
-        fetchData();
-      }
-    });
+  if (revalidateOnReconnect && (revalidateIfStale || !data.value)) {
+    useEventListener(window, 'online', () => fetchData());
   }
 
   watch(
     computedKey,
     (newKey, oldKey) => {
-      if (newKey !== oldKey) {
-        if (revalidateIfStale || !data.value) {
-          fetchData();
-        }
+      if (newKey !== oldKey && (revalidateIfStale || !data.value)) {
+        fetchData();
       }
     },
     { immediate: true },
