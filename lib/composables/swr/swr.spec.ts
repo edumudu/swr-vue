@@ -142,6 +142,20 @@ describe('useSWR', () => {
     expect(data.value).toBe('FetcherResult');
   });
 
+  it('should not revalidate if revalidateIfStale is false', async () => {
+    cacheProvider.set(defaultKey, 'cachedData');
+
+    const fetcher = vi.fn().mockResolvedValue('FetcherResult');
+    const [result] = withSetup(() =>
+      useSWR(defaultKey, fetcher, { cacheProvider, revalidateIfStale: false }),
+    );
+    const { data } = result;
+
+    await flushPromises();
+    expect(fetcher).toBeCalledTimes(0);
+    expect(data.value).toBe('cachedData');
+  });
+
   it('should revalidate when back online', async () => {
     cacheProvider.set(defaultKey, 'cachedData');
 

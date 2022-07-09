@@ -56,11 +56,19 @@ export const useSWR = <Data = any, Error = any>(
   };
 
   if (revalidateOnFocus) {
-    useEventListener(window, 'focus', () => fetchData());
+    useEventListener(window, 'focus', () => {
+      if (revalidateIfStale || !data.value) {
+        fetchData();
+      }
+    });
   }
 
   if (revalidateOnReconnect) {
-    useEventListener(window, 'online', () => fetchData());
+    useEventListener(window, 'online', () => {
+      if (revalidateIfStale || !data.value) {
+        fetchData();
+      }
+    });
   }
 
   watch(
