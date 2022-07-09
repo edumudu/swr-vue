@@ -10,6 +10,8 @@ type SWRFetcher<Data> =
 
 type SWRConfig = {
   cacheProvider?: typeof cache;
+  revalidateOnFocus?: boolean;
+  revalidateOnReconnect?: boolean;
 };
 
 const cache = reactive(new MapAdapter());
@@ -23,7 +25,11 @@ export const useSWR = <Data = any, Error = any>(
   fetcher: SWRFetcher<Data>,
   config?: SWRConfig,
 ) => {
-  const { cacheProvider = cache } = config || {};
+  const {
+    cacheProvider = cache,
+    revalidateOnFocus = true,
+    revalidateOnReconnect = true,
+  } = config || {};
 
   const computedKey = computed(typeof key === 'function' ? key : () => key);
   const error = ref<Error>();
@@ -47,7 +53,13 @@ export const useSWR = <Data = any, Error = any>(
     }
   };
 
-  useEventListener(window, 'focus', () => fetchData());
+  if (revalidateOnFocus) {
+    useEventListener(window, 'focus', () => fetchData());
+  }
+
+  if (revalidateOnReconnect) {
+    useEventListener(window, 'online', () => fetchData());
+  }
 
   watch(
     computedKey,

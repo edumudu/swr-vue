@@ -122,6 +122,65 @@ describe('useSWR', () => {
     expect(data.value).toBe('FetcherResult');
   });
 
+  it('should not revalidate when focus if config revalidateOnFocus is false', async () => {
+    cacheProvider.set(defaultKey, 'cachedData');
+
+    const fetcher = vi.fn().mockResolvedValue('FetcherResult');
+    const [result] = withSetup(() =>
+      useSWR(defaultKey, fetcher, { cacheProvider, revalidateOnFocus: false }),
+    );
+    const { data } = result;
+
+    const blurEvent = new Event('blur', { bubbles: true });
+    const focusEvent = new Event('focus', { bubbles: true });
+
+    document.dispatchEvent(blurEvent);
+    document.dispatchEvent(focusEvent);
+
+    await flushPromises();
+    expect(fetcher).toBeCalledTimes(1);
+    expect(data.value).toBe('FetcherResult');
+  });
+
+  it('should revalidate when back online', async () => {
+    cacheProvider.set(defaultKey, 'cachedData');
+
+    const fetcher = vi.fn().mockResolvedValue('FetcherResult');
+    const [result] = withSetup(() =>
+      useSWR(defaultKey, fetcher, defaultOptions),
+    );
+    const { data } = result;
+
+    const onlineEvent = new Event('online', { bubbles: true });
+
+    document.dispatchEvent(onlineEvent);
+
+    await flushPromises();
+    expect(fetcher).toBeCalledTimes(2);
+    expect(data.value).toBe('FetcherResult');
+  });
+
+  it('should not revalidate when back online if config revalidateOnReconnect is false', async () => {
+    cacheProvider.set(defaultKey, 'cachedData');
+
+    const fetcher = vi.fn().mockResolvedValue('FetcherResult');
+    const [result] = withSetup(() =>
+      useSWR(defaultKey, fetcher, {
+        cacheProvider,
+        revalidateOnReconnect: false,
+      }),
+    );
+    const { data } = result;
+
+    const onlineEvent = new Event('online', { bubbles: true });
+
+    document.dispatchEvent(onlineEvent);
+
+    await flushPromises();
+    expect(fetcher).toBeCalledTimes(1);
+    expect(data.value).toBe('FetcherResult');
+  });
+
   it('should be reactive to the key as function with ref', async () => {
     const key = ref('initialKey');
     const fetcher = vi.fn();
