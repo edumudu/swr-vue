@@ -1,0 +1,31 @@
+name: PR-Checks
+
+on: [pull_request]
+
+jobs:
+  verify_pr:
+    name: "Verify PR"
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: pnpm/action-setup@v2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+          cache: 'pnpm'
+          cache-dependency-path: '**/pnpm-lock.yaml'
+
+      - name: Install dependencies
+        run: pnpm i --frozen-lockfile
+
+      - name: Check lint
+        run: pnpm run lint:js
+
+      - name: Check Tests
+        run: pnpm run test:unit
+
+      - name: Build lib
+        run: pnpm run build
