@@ -25,4 +25,24 @@ describe('serializeKey', () => {
 
     expect(key).toBe('return');
   });
+
+  it.each([
+    '',
+    false as const,
+    null,
+    undefined,
+    [],
+    () => '',
+    () => false as const,
+    () => null,
+    () => undefined,
+    () => [],
+  ])(
+    'should return empty string if key resolves to a falsy value or empty array: "%s"',
+    (sourceKey) => {
+      const { key } = serializeKey(sourceKey);
+
+      expect(key).toBe('');
+    },
+  );
 });
