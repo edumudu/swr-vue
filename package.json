@@ -1,10 +1,10 @@
 {
   "name": "swr-vue",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "author": "Eduardo Wesley <eduardomudutiu@gmail.com>",
   "description": "Vue composables for Data fetching",
   "license": "MIT",
-  "packageManager": "pnpm@7.3.0",
+  "packageManager": "pnpm@7.5.0",
   "homepage": "https://github.com/edumudu/swr-vue#readme",
   "repository": {
     "type": "git",

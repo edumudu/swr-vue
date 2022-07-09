@@ -3,9 +3,7 @@ import { App, createApp } from 'vue';
 /**
  * Use this function for test coposables that depend on lifecycles or provide/inject
  */
-export function withSetup<C extends () => any>(
-  composable: C,
-): [ReturnType<C>, App<Element>] {
+export function withSetup<C extends () => any>(composable: C): [ReturnType<C>, App<Element>] {
   let result: ReturnType<C> = null as any;
 
   const app = createApp({

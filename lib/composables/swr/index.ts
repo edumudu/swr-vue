@@ -1,12 +1,13 @@
-import { computed, ref, reactive, readonly, watch } from 'vue';
-import { useEventListener } from '@vueuse/core';
+import { computed, ref, reactive, readonly, watch, toRefs } from 'vue';
+import { toReactive, useEventListener } from '@vueuse/core';
+
+import { serializeKey } from '@/utils';
+import { Key } from '@/types';
 
 import { MapAdapter } from '../../cache';
 
-type SWRKey = string | (() => string);
-type SWRFetcher<Data> =
-  | ((url: string) => Promise<Data> | Data)
-  | (() => Promise<Data> | Data);
+type SWRKey = Key;
+type SWRFetcher<Data> = ((...args: any[]) => Promise<Data> | Data) | (() => Promise<Data> | Data);
 
 type SWRConfig = {
   cacheProvider?: typeof cache;
@@ -22,7 +23,7 @@ export const mutateGlobal = (key: string, value: any) => {
 };
 
 export const useSWR = <Data = any, Error = any>(
-  key: SWRKey,
+  _key: SWRKey,
   fetcher: SWRFetcher<Data>,
   config?: SWRConfig,
 ) => {
@@ -33,19 +34,22 @@ export const useSWR = <Data = any, Error = any>(
     revalidateIfStale = true,
   } = config || {};
 
-  const computedKey = computed(typeof key === 'function' ? key : () => key);
+  const { key, args: fetcherArgs } = toRefs(toReactive(computed(() => serializeKey(_key))));
   const error = ref<Error>();
   const isValidating = ref(true);
   const data = computed<Data>({
-    get: () => cacheProvider.get(computedKey.value),
-    set: (newVal) => cacheProvider.set(computedKey.value, newVal),
+    get: () => cacheProvider.get(key.value),
+    set: (newVal) => cacheProvider.set(key.value, newVal),
   });
 
   const fetchData = async () => {
     isValidating.value = true;
 
     try {
-      const fetcherResponse = await fetcher(computedKey.value);
+      const fetcherResponse = await fetcher.apply(
+        fetcher,
+        Array.isArray(fetcherArgs.value) ? fetcherArgs.value : [fetcherArgs.value],
+      );
 
       data.value = fetcherResponse;
     } catch (err: any) {
@@ -64,9 +68,9 @@ export const useSWR = <Data = any, Error = any>(
   }
 
   watch(
-    computedKey,
+    key,
     (newKey, oldKey) => {
-      if (newKey !== oldKey && (revalidateIfStale || !data.value)) {
+      if (!!newKey && newKey !== oldKey && (revalidateIfStale || !data.value)) {
         fetchData();
       }
     },
@@ -77,6 +81,6 @@ export const useSWR = <Data = any, Error = any>(
     data: readonly(data),
     error: readonly(error),
     isValidating: readonly(isValidating),
-    mutate: (newValue: any) => mutateGlobal(computedKey.value, newValue),
+    mutate: (newValue: any) => mutateGlobal(key.value, newValue),
   };
 };
