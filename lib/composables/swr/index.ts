@@ -1,20 +1,11 @@
 import { computed, ref, reactive, readonly, watch, toRefs } from 'vue';
 import { toReactive, useEventListener } from '@vueuse/core';
 
+import type { SWRConfig, SWRFetcher, SWRKey } from '@/types';
 import { serializeKey } from '@/utils';
-import { Key } from '@/types';
-
-import { MapAdapter } from '../../cache';
-
-type SWRKey = Key;
-type SWRFetcher<Data> = ((...args: any[]) => Promise<Data> | Data) | (() => Promise<Data> | Data);
-
-type SWRConfig = {
-  cacheProvider?: typeof cache;
-  revalidateOnFocus?: boolean;
-  revalidateOnReconnect?: boolean;
-  revalidateIfStale?: boolean;
-};
+import { mergeConfig } from '@/utils/merge-config';
+import { MapAdapter } from '@/cache';
+import { useGlobalSWRConfig } from '@/composables/global-swr-config';
 
 const cache = reactive(new MapAdapter());
 
@@ -25,14 +16,16 @@ export const mutateGlobal = (key: string, value: any) => {
 export const useSWR = <Data = any, Error = any>(
   _key: SWRKey,
   fetcher: SWRFetcher<Data>,
-  config?: SWRConfig,
+  config: SWRConfig = {},
 ) => {
+  const { globalConfig } = useGlobalSWRConfig();
+
   const {
     cacheProvider = cache,
-    revalidateOnFocus = true,
-    revalidateOnReconnect = true,
-    revalidateIfStale = true,
-  } = config || {};
+    revalidateOnFocus,
+    revalidateOnReconnect,
+    revalidateIfStale,
+  } = mergeConfig(globalConfig.value, config);
 
   const { key, args: fetcherArgs } = toRefs(toReactive(computed(() => serializeKey(_key))));
   const error = ref<Error>();
@@ -81,6 +74,6 @@ export const useSWR = <Data = any, Error = any>(
     data: readonly(data),
     error: readonly(error),
     isValidating: readonly(isValidating),
-    mutate: (newValue: any) => mutateGlobal(key.value, newValue),
+    mutate: (newValue: Data) => mutateGlobal(key.value, newValue),
   };
 };
