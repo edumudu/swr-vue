@@ -3,13 +3,15 @@ import { App, createApp } from 'vue';
 /**
  * Use this function for test coposables that depend on lifecycles or provide/inject
  */
-export function withSetup<C extends () => any>(composable: C): [ReturnType<C>, App<Element>] {
+export function withSetup<C extends (app: App<Element>) => any>(
+  composable: C,
+): [ReturnType<C>, App<Element>] {
   let result: ReturnType<C> = null as any;
 
   const app = createApp({
     name: 'TestApp',
     setup() {
-      result = composable();
+      result = composable(app);
 
       // suppress missing template warning
       // eslint-disable-next-line @typescript-eslint/no-empty-function
