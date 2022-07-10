@@ -7,6 +7,10 @@ export type KeyArguments =
   | false;
 
 export type Key = KeyArguments | (() => KeyArguments);
+export type SWRKey = Key;
+export type SWRFetcher<Data> =
+  | ((...args: any[]) => Promise<Data> | Data)
+  | (() => Promise<Data> | Data);
 
 export interface CacheProvider<Data = any> {
   keys(): IterableIterator<string>;
