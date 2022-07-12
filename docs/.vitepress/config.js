@@ -37,7 +37,7 @@ function nav() {
         },
         {
           text: 'Contributing',
-          link: 'https://github.com/edumudu/swr-vue/blob/main/.github/contributing.md'
+          link: 'https://github.com/edumudu/swr-vue/blob/main/CONTRIBUTING.md'
         },
       ],
     },
