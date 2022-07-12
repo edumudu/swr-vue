@@ -33,7 +33,7 @@ function nav() {
       items: [
         {
           text: 'Release Notes',
-          link: 'https://github.com/edumudu/swr-vu/releases'
+          link: 'https://github.com/edumudu/swr-vue/releases'
         },
         {
           text: 'Contributing',
