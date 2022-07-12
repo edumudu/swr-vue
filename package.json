@@ -33,7 +33,10 @@
     "preview": "vite preview",
     "lint:js": "eslint . --ext js,ts,jsx,tsx,vue --ignore-path .gitignore",
     "test:unit": "vitest run",
-    "test:unit:watch": "vitest watch"
+    "test:unit:watch": "vitest watch",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:serve": "vitepress serve docs"
   },
   "devDependencies": {
     "@commitlint/cli": "^17.0.3",
@@ -63,6 +66,7 @@
     "typescript": "^4.7.4",
     "vite": "^2.9.13",
     "vite-tsconfig-paths": "^3.5.0",
+    "vitepress": "1.0.0-alpha.4",
     "vitest": "^0.16.0",
     "vue": "^3.2.37",
     "vue-tsc": "^0.38.2"
@@ -90,5 +94,14 @@
   ],
   "engines": {
     "node": "16"
+  },
+  "pnpm": {
+    "peerDependencyRules": {
+      "ignoreMissing": [
+        "@types/react",
+        "react",
+        "react-dom"
+      ]
+    }
   }
 }
