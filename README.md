@@ -16,6 +16,7 @@
 `swr-vue` is a Vue composables library for data fetching.
 
 For a more details you can visit the [documentation](https://edumudu.github.io/swr-vue/)
+
 If you are looking to contribute, please check [CONTRIBUTING.md](./CONTRIBUTING.md)
 
 ## Quick Start
