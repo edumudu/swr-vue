@@ -3,16 +3,18 @@ import { isRef, reactive, ref } from 'vue';
 import flushPromises from 'flush-promises';
 
 import { withSetup } from '@/utils/with-setup';
+import { SWRConfig } from '@/types';
 
 import { useSWR } from '.';
 
 const cacheProvider = reactive(new Map());
 const defaultKey = 'defaultKey';
 const defaultFetcher = (key: string) => key;
-const defaultOptions = { cacheProvider };
+const defaultOptions: SWRConfig = { cacheProvider, dedupingInterval: 0 };
 
 describe('useSWR', () => {
   beforeEach(() => {
+    vi.useRealTimers();
     cacheProvider.clear();
   });
 
@@ -66,9 +68,27 @@ describe('useSWR', () => {
     expect(isValidating.value).toBeFalsy();
   });
 
+  it('should set the same error in differnt `useSWR` calls with the same key', async () => {
+    const [result] = withSetup(() => {
+      const error = new Error('Error in fetcher');
+
+      const { error: error1 } = useSWR(defaultKey, () => 'fulfilled', defaultOptions);
+      const { error: error2 } = useSWR(defaultKey, () => Promise.reject(error), defaultOptions);
+
+      return [error1, error2];
+    });
+
+    const [error1, error2] = result;
+
+    await flushPromises();
+    expect(error1.value).toBeInstanceOf(Error);
+    expect(error2.value).toBeInstanceOf(Error);
+    expect(error1.value).toBe(error2.value);
+  });
+
   it('should return cached value first then revalidate', async () => {
     vi.useFakeTimers();
-    cacheProvider.set(defaultKey, 'cachedData');
+    cacheProvider.set(defaultKey, { data: 'cachedData', fetchedIn: new Date() });
 
     const fetcher = async () =>
       new Promise((resolve) => {
@@ -83,12 +103,10 @@ describe('useSWR', () => {
     vi.runAllTimers();
     await flushPromises();
     expect(data.value).toBe('FetcherResult');
-
-    vi.useRealTimers();
   });
 
   it('should revalidate when focus page', async () => {
-    cacheProvider.set(defaultKey, 'cachedData');
+    cacheProvider.set(defaultKey, { data: 'cachedData', fetchedIn: new Date() });
 
     const fetcher = vi.fn().mockResolvedValue('FetcherResult');
     const [result] = withSetup(() => useSWR(defaultKey, fetcher, defaultOptions));
@@ -106,11 +124,15 @@ describe('useSWR', () => {
   });
 
   it('should not revalidate when focus if config revalidateOnFocus is false', async () => {
-    cacheProvider.set(defaultKey, 'cachedData');
+    cacheProvider.set(defaultKey, { data: 'cachedData', fetchedIn: new Date() });
 
     const fetcher = vi.fn().mockResolvedValue('FetcherResult');
     const [result] = withSetup(() =>
-      useSWR(defaultKey, fetcher, { cacheProvider, revalidateOnFocus: false }),
+      useSWR(defaultKey, fetcher, {
+        ...defaultOptions,
+        cacheProvider,
+        revalidateOnFocus: false,
+      }),
     );
     const { data } = result;
 
@@ -126,7 +148,7 @@ describe('useSWR', () => {
   });
 
   it('should not revalidate if revalidateIfStale is false', async () => {
-    cacheProvider.set(defaultKey, 'cachedData');
+    cacheProvider.set(defaultKey, { data: 'cachedData', fetchedIn: new Date() });
 
     const fetcher = vi.fn().mockResolvedValue('FetcherResult');
     const [result] = withSetup(() =>
@@ -140,7 +162,7 @@ describe('useSWR', () => {
   });
 
   it('should revalidate when back online', async () => {
-    cacheProvider.set(defaultKey, 'cachedData');
+    cacheProvider.set(defaultKey, { data: 'cachedData', fetchedIn: new Date() });
 
     const fetcher = vi.fn().mockResolvedValue('FetcherResult');
     const [result] = withSetup(() => useSWR(defaultKey, fetcher, defaultOptions));
@@ -156,11 +178,12 @@ describe('useSWR', () => {
   });
 
   it('should not revalidate when back online if config revalidateOnReconnect is false', async () => {
-    cacheProvider.set(defaultKey, 'cachedData');
+    cacheProvider.set(defaultKey, { data: 'cachedData', fetchedIn: new Date() });
 
     const fetcher = vi.fn().mockResolvedValue('FetcherResult');
     const [result] = withSetup(() =>
       useSWR(defaultKey, fetcher, {
+        ...defaultOptions,
         cacheProvider,
         revalidateOnReconnect: false,
       }),
@@ -241,5 +264,72 @@ describe('useSWR', () => {
     withSetup(() => useSWR(key, fetcher, defaultOptions));
 
     expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it('should call the fetcher once time if composables are called close of each other ', () => {
+    const fetcher = vi.fn(() => 'FetcherResult');
+    const interval = 2000;
+    const key = 'key-1';
+
+    vi.useFakeTimers();
+
+    const options: SWRConfig = {
+      ...defaultOptions,
+      dedupingInterval: interval,
+    };
+
+    withSetup(() => {
+      useSWR(key, fetcher, options);
+      useSWR(key, fetcher, options);
+      useSWR(key, fetcher, options);
+      useSWR(key, fetcher, options);
+    });
+
+    expect(fetcher).toBeCalledTimes(1);
+  });
+
+  it('should return the same value when called inside deduping interval', async () => {
+    const interval = 2000;
+    const key = 'key-1';
+
+    vi.useFakeTimers();
+
+    const options: SWRConfig = {
+      ...defaultOptions,
+      dedupingInterval: interval,
+    };
+
+    const [result] = withSetup(() => {
+      const { data: data1 } = useSWR(key, () => 'result1', options);
+      const { data: data2 } = useSWR(key, () => 'result2', options);
+      const { data: data3 } = useSWR(key, () => 'result3', options);
+      const { data: data4 } = useSWR(key, () => 'result4', options);
+
+      return [data1, data2, data3, data4];
+    });
+
+    await flushPromises();
+    expect(result.map((data) => data.value)).toEqual(['result1', 'result1', 'result1', 'result1']);
+  });
+
+  it('should call the fetcher function again when outside deduping interval', async () => {
+    const interval = 2000;
+    const key = 'key-1';
+    const fetcher = vi.fn(() => 'newResult');
+
+    vi.useFakeTimers();
+    cacheProvider.set(key, { data: 'cachedData', fetchedIn: new Date() });
+
+    withSetup(() => {
+      vi.advanceTimersByTime(interval);
+
+      return useSWR(key, fetcher, {
+        ...defaultOptions,
+        dedupingInterval: interval,
+      });
+    });
+
+    await flushPromises();
+    expect(fetcher).toHaveBeenCalledTimes(1);
   });
 });

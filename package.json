@@ -64,10 +64,10 @@
     "prettier": "^2.7.1",
     "semantic-release": "^19.0.3",
     "typescript": "^4.7.4",
-    "vite": "^2.9.13",
+    "vite": "^2.9.14",
     "vite-tsconfig-paths": "^3.5.0",
     "vitepress": "1.0.0-alpha.4",
-    "vitest": "^0.16.0",
+    "vitest": "^0.18.0",
     "vue": "^3.2.37",
     "vue-tsc": "^0.38.2"
   },

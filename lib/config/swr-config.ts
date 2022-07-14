@@ -6,4 +6,5 @@ export const defaultConfig: Required<SWRConfig> = {
   revalidateOnFocus: true,
   revalidateOnReconnect: true,
   revalidateIfStale: true,
+  dedupingInterval: 2000,
 };

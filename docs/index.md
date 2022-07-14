@@ -13,6 +13,7 @@ SWR derives from `stale-while-revalidate`, a HTTP cache technique. This techniqu
 - Request lib agnostic
 - Integrated cache
 - Optimistic UI
+- Request deduplication
 
 ## Comunity
 
