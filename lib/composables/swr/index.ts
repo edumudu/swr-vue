@@ -4,29 +4,22 @@ import { toReactive, useEventListener } from '@vueuse/core';
 import type { SWRConfig, SWRFetcher, SWRKey } from '@/types';
 import { serializeKey } from '@/utils';
 import { mergeConfig } from '@/utils/merge-config';
-import { MapAdapter } from '@/cache';
-import { useGlobalSWRConfig } from '@/composables/global-swr-config';
-
-const cache = reactive(new MapAdapter());
-
-export const mutateGlobal = (key: string, value: any) => {
-  cache.set(key, value);
-};
+import { useSWRConfig } from '@/composables/global-swr-config';
 
 export const useSWR = <Data = any, Error = any>(
   _key: SWRKey,
   fetcher: SWRFetcher<Data>,
   config: SWRConfig = {},
 ) => {
-  const { globalConfig } = useGlobalSWRConfig();
+  const { config: contextConfig, mutate } = useSWRConfig();
 
   const {
-    cacheProvider = cache,
+    cacheProvider,
     revalidateOnFocus,
     revalidateOnReconnect,
     revalidateIfStale,
     dedupingInterval,
-  } = mergeConfig(globalConfig.value, config);
+  } = mergeConfig(contextConfig.value, config);
 
   const { key, args: fetcherArgs } = toRefs(toReactive(computed(() => serializeKey(_key))));
 
@@ -91,6 +84,6 @@ export const useSWR = <Data = any, Error = any>(
     data: readonly(data),
     error: readonly(error),
     isValidating: readonly(isValidating),
-    mutate: (newValue: Data) => mutateGlobal(key.value, newValue),
+    mutate: (newValue: Data) => mutate(key.value, newValue),
   };
 };

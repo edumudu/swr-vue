@@ -5,9 +5,9 @@ import { defaultConfig, globalConfigKey } from '@/config';
 import { SWRConfig } from '@/types';
 import { withSetup } from '@/utils/with-setup';
 
-import { useGlobalSWRConfig, configureGlobalSWR } from '.';
+import { useSWRConfig, configureGlobalSWR } from '.';
 
-describe('useGlobalSWRConfig', () => {
+describe('useSWRConfig', () => {
   const provideConfig = (prov: App['provide'], config: SWRConfig) => {
     const mockedConfig = ref(config);
 
@@ -21,19 +21,19 @@ describe('useGlobalSWRConfig', () => {
     [{ revalidateIfStale: false, revalidateOnFocus: true }],
     [{ revalidateIfStale: true, revalidateOnFocus: false }],
   ])('should get configs from global configuration: "%s"', (objToProvide) => {
-    const [{ globalConfig }] = withSetup((app) => {
+    const [{ config }] = withSetup((app) => {
       provideConfig(app.provide, objToProvide);
 
-      return useGlobalSWRConfig();
+      return useSWRConfig();
     });
 
-    expect(globalConfig.value).toEqual(objToProvide);
+    expect(config.value).toEqual(objToProvide);
   });
 
   it('should return default config if not have an provided one', () => {
-    const [{ globalConfig }] = withSetup(() => useGlobalSWRConfig());
+    const [{ config }] = withSetup(() => useSWRConfig());
 
-    expect(globalConfig.value).toEqual(defaultConfig);
+    expect(config.value).toEqual(defaultConfig);
   });
 });
 
