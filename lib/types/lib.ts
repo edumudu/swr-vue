@@ -20,6 +20,7 @@ export interface CacheProvider<Data = any> {
   get(key: Key): Data | undefined;
   set(key: Key, value: Data): void;
   delete(key: Key): void;
+  clear(): void;
 }
 
 export type CacheState = {
@@ -36,3 +37,5 @@ export type SWRConfig = {
   revalidateIfStale?: boolean;
   dedupingInterval?: number;
 };
+
+export type SWRComposableConfig = Omit<SWRConfig, 'cacheProvider'>;

@@ -1,7 +1,7 @@
 import { computed, ref, reactive, readonly, watch, toRefs, toRef } from 'vue';
 import { toReactive, useEventListener } from '@vueuse/core';
 
-import type { SWRConfig, SWRFetcher, SWRKey } from '@/types';
+import type { SWRComposableConfig, SWRFetcher, SWRKey } from '@/types';
 import { serializeKey } from '@/utils';
 import { mergeConfig } from '@/utils/merge-config';
 import { useSWRConfig } from '@/composables/global-swr-config';
@@ -9,7 +9,7 @@ import { useSWRConfig } from '@/composables/global-swr-config';
 export const useSWR = <Data = any, Error = any>(
   _key: SWRKey,
   fetcher: SWRFetcher<Data>,
-  config: SWRConfig = {},
+  config: SWRComposableConfig = {},
 ) => {
   const { config: contextConfig, mutate } = useSWRConfig();
 
