@@ -1,8 +1,8 @@
 import { SWRConfig } from '@/types';
 
-export const mergeConfig = (
-  fallbackConfig: Partial<SWRConfig>,
-  config: Partial<SWRConfig> = {},
+export const mergeConfig = <T extends Partial<SWRConfig>, D extends Partial<SWRConfig>>(
+  fallbackConfig: T,
+  config: D,
 ) => ({
   ...fallbackConfig,
   ...config,

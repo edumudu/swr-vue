@@ -2,8 +2,6 @@ import { mergeConfig } from '.';
 
 describe('mergeConfig', () => {
   it.each([
-    [{}, {}, {}],
-    [{}, undefined, {}],
     [{}, { revalidateIfStale: true }, { revalidateIfStale: true }],
     [{ revalidateIfStale: true }, {}, { revalidateIfStale: true }],
     [{ revalidateIfStale: true }, { revalidateIfStale: true }, { revalidateIfStale: true }],

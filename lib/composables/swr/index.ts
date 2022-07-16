@@ -39,7 +39,7 @@ export const useSWR = <Data = any, Error = any>(
   const fetchedIn = hasCachedValue.value ? toRef(valueInCache.value, 'fetchedIn') : ref(new Date());
 
   const fetchData = async () => {
-    const timestampToDedupExpire = (fetchedIn.value?.getTime() || 0) + (dedupingInterval || 0);
+    const timestampToDedupExpire = (fetchedIn.value?.getTime() || 0) + dedupingInterval;
 
     if (hasCachedValue.value && timestampToDedupExpire > Date.now()) return;
 
