@@ -1,4 +1,4 @@
-import { computed, ref, reactive, readonly, watch, toRefs, toRef } from 'vue';
+import { computed, ref, readonly, watch, toRefs, toRef } from 'vue';
 import { toReactive, useEventListener } from '@vueuse/core';
 
 import type { SWRComposableConfig, SWRFetcher, SWRKey } from '@/types';
@@ -26,10 +26,10 @@ export const useSWR = <Data = any, Error = any>(
   const valueInCache = computed(() => cacheProvider.get(key.value));
   const hasCachedValue = computed(() => !!valueInCache.value);
 
-  const error = hasCachedValue.value ? toRef(valueInCache.value, 'error') : ref<Error>();
-  const isValidating = hasCachedValue.value ? toRef(valueInCache.value, 'isValidating') : ref(true);
-  const data = hasCachedValue.value ? toRef(valueInCache.value, 'data') : ref();
-  const fetchedIn = hasCachedValue.value ? toRef(valueInCache.value, 'fetchedIn') : ref(new Date());
+  const error = valueInCache.value ? toRef(valueInCache.value, 'error') : ref<Error>();
+  const isValidating = valueInCache.value ? toRef(valueInCache.value, 'isValidating') : ref(true);
+  const data = valueInCache.value ? toRef(valueInCache.value, 'data') : ref();
+  const fetchedIn = valueInCache.value ? toRef(valueInCache.value, 'fetchedIn') : ref(new Date());
 
   const fetchData = async () => {
     const timestampToDedupExpire = (fetchedIn.value?.getTime() || 0) + dedupingInterval;
