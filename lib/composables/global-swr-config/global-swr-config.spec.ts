@@ -1,6 +1,5 @@
 import { provide, reactive, ref, UnwrapRef } from 'vue';
 import { Mock } from 'vitest';
-import flushPromises from 'flush-promises';
 
 import { defaultConfig, globalConfigKey } from '@/config';
 import { AnyFunction, CacheState, Key, SWRConfig } from '@/types';

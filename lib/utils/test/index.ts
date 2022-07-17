@@ -1,6 +1,6 @@
 // eslint-disable-next-line eslint-comments/disable-enable-pair
 /* eslint-disable vue/one-component-per-file */
-import { createApp, defineComponent, h, InjectionKey, provide } from 'vue';
+import { createApp, defineComponent, h } from 'vue';
 
 // Thanks https://github.com/vueuse/vueuse/blob/main/packages/.test/mount.ts
 

@@ -404,4 +404,70 @@ describe('useSWR', () => {
     await flushPromises();
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
+
+  it('should change local data variable value when mutate resolves', async () => {
+    setDataToCache(defaultKey, { data: 'cachedData' });
+
+    const { mutate, data } = useInjectedSetup(
+      () => configureGlobalSWR({ cacheProvider }),
+      () => useSWR(defaultKey, () => 'FetcherResult'),
+    );
+
+    expect(data.value).toEqual('cachedData');
+    await mutate(() => 'newValue');
+
+    expect(data.value).toEqual('newValue');
+  });
+
+  it('should change local data variable value when mutate is called with `optimistcData`', async () => {
+    setDataToCache(defaultKey, { data: 'cachedData' });
+
+    const { mutate, data } = useInjectedSetup(
+      () => configureGlobalSWR({ cacheProvider }),
+      () => useSWR(defaultKey, () => 'FetcherResult'),
+    );
+
+    expect(data.value).toEqual('cachedData');
+
+    mutate(() => 'newValue', { optimisticData: 'optimistcData' });
+    expect(data.value).toEqual('optimistcData');
+  });
+
+  it('should update all hooks with the same key when call mutates', async () => {
+    setDataToCache(defaultKey, { data: 'cachedData' });
+
+    const { datas, mutate, differentData } = useInjectedSetup(
+      () => configureGlobalSWR({ cacheProvider }),
+      () => {
+        const { data: data1, mutate: localMutate } = useSWR(defaultKey, defaultFetcher);
+        const { data: data2 } = useSWR(defaultKey, defaultFetcher);
+        const { data: data3 } = useSWR(defaultKey, defaultFetcher);
+        const { data: data4 } = useSWR(defaultKey, defaultFetcher);
+        const { data: differentData1 } = useSWR('key-2', () => 'should not change');
+
+        return {
+          differentData: differentData1,
+          datas: [data1, data2, data3, data4],
+          mutate: localMutate,
+        };
+      },
+    );
+
+    expect(datas.map((data) => data.value)).toEqual([
+      'cachedData',
+      'cachedData',
+      'cachedData',
+      'cachedData',
+    ]);
+
+    await mutate(() => 'mutated value');
+    expect(datas.map((data) => data.value)).toEqual([
+      'mutated value',
+      'mutated value',
+      'mutated value',
+      'mutated value',
+    ]);
+
+    expect(differentData.value).toEqual('should not change');
+  });
 });
