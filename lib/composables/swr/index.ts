@@ -1,7 +1,7 @@
 import { computed, ref, readonly, watch, toRefs, toRef } from 'vue';
 import { toReactive, useEventListener } from '@vueuse/core';
 
-import type { SWRComposableConfig, SWRFetcher, SWRKey } from '@/types';
+import type { OmitFirstArrayIndex, SWRComposableConfig, SWRFetcher, SWRKey } from '@/types';
 import { serializeKey } from '@/utils';
 import { mergeConfig } from '@/utils/merge-config';
 import { useSWRConfig } from '@/composables/global-swr-config';
@@ -84,6 +84,7 @@ export const useSWR = <Data = any, Error = any>(
     data: readonly(data),
     error: readonly(error),
     isValidating: readonly(isValidating),
-    mutate: (newValue: Data) => mutate(key.value, newValue),
+    mutate: (...params: OmitFirstArrayIndex<Parameters<typeof mutate>>) =>
+      mutate(key.value, ...params),
   };
 };
