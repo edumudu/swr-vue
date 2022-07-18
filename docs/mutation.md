@@ -2,6 +2,8 @@
 
 You can get the `mutate` function from `useSWRConfig` composable, and emit an global revalidation to all composables using the same key calling `mutate(key, () => newData)`
 
+> Note: any change made by the function `mutate` will be limited to the current scope's cache provider, if the function is not inside a scope, the default cache provider will be used.
+
 ### Options Available
 
 - `optimisticData` - The data to be immediately written in the cache, commonly used for optimistic UI
