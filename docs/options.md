@@ -15,11 +15,10 @@ const { data, error, isValidating, mutate } = useSWR(key, fetcher, options)
 - `data` - data for the given key resolved by fetcher (or undefined if not loaded)
 - `error` - error thrown by fetcher (or undefined if nothing threw)
 - `isValidating` - if there's the first request or revalidation going on
-- `mutate(data)` - function to mutate the cached data
+- `mutate(updateFn, options?)` - function to mutate the cached data. [More details](./mutation.md)
 
 ## Options
 
-- `cacheProvider = new Map()` - Provider that should be used as cache source for this composable
 - `revalidateOnFocus = true` - Automatically revalidate when window gets focused
 - `revalidateOnReconnect = true` - Automatically revalidate when the browser regains a network connection
 - `revalidateIfStale = true` - Automatically revalidate if there is stale data
