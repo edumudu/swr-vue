@@ -58,6 +58,8 @@ function sidebar() {
       collapsible: true,
       items: [
         { text: 'Options', link: '/options' },
+        { text: 'Mutation', link: '/mutation' },
+        { text: 'Global Configuration', link: '/global-configuration' },
       ]
     },
   ]

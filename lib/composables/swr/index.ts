@@ -1,41 +1,41 @@
-import { computed, ref, reactive, readonly, watch, toRefs } from 'vue';
+import { computed, ref, readonly, watch, toRefs, toRef } from 'vue';
 import { toReactive, useEventListener } from '@vueuse/core';
 
-import type { SWRConfig, SWRFetcher, SWRKey } from '@/types';
+import type { OmitFirstArrayIndex, SWRComposableConfig, SWRFetcher, SWRKey } from '@/types';
 import { serializeKey } from '@/utils';
 import { mergeConfig } from '@/utils/merge-config';
-import { MapAdapter } from '@/cache';
-import { useGlobalSWRConfig } from '@/composables/global-swr-config';
-
-const cache = reactive(new MapAdapter());
-
-export const mutateGlobal = (key: string, value: any) => {
-  cache.set(key, value);
-};
+import { useSWRConfig } from '@/composables/global-swr-config';
 
 export const useSWR = <Data = any, Error = any>(
   _key: SWRKey,
   fetcher: SWRFetcher<Data>,
-  config: SWRConfig = {},
+  config: SWRComposableConfig = {},
 ) => {
-  const { globalConfig } = useGlobalSWRConfig();
+  const { config: contextConfig, mutate } = useSWRConfig();
 
   const {
-    cacheProvider = cache,
+    cacheProvider,
     revalidateOnFocus,
     revalidateOnReconnect,
     revalidateIfStale,
-  } = mergeConfig(globalConfig.value, config);
+    dedupingInterval,
+  } = mergeConfig(contextConfig.value, config);
 
   const { key, args: fetcherArgs } = toRefs(toReactive(computed(() => serializeKey(_key))));
-  const error = ref<Error>();
-  const isValidating = ref(true);
-  const data = computed<Data>({
-    get: () => cacheProvider.get(key.value),
-    set: (newVal) => cacheProvider.set(key.value, newVal),
-  });
+
+  const valueInCache = computed(() => cacheProvider.get(key.value));
+  const hasCachedValue = computed(() => !!valueInCache.value);
+
+  const error = valueInCache.value ? toRef(valueInCache.value, 'error') : ref<Error>();
+  const isValidating = valueInCache.value ? toRef(valueInCache.value, 'isValidating') : ref(true);
+  const data = valueInCache.value ? toRef(valueInCache.value, 'data') : ref();
+  const fetchedIn = valueInCache.value ? toRef(valueInCache.value, 'fetchedIn') : ref(new Date());
 
   const fetchData = async () => {
+    const timestampToDedupExpire = (fetchedIn.value?.getTime() || 0) + dedupingInterval;
+
+    if (hasCachedValue.value && timestampToDedupExpire > Date.now()) return;
+
     isValidating.value = true;
 
     try {
@@ -45,6 +45,7 @@ export const useSWR = <Data = any, Error = any>(
       );
 
       data.value = fetcherResponse;
+      fetchedIn.value = new Date();
     } catch (err: any) {
       error.value = err;
     } finally {
@@ -70,10 +71,20 @@ export const useSWR = <Data = any, Error = any>(
     { immediate: true },
   );
 
+  if (!hasCachedValue.value) {
+    cacheProvider.set(key.value, {
+      error,
+      isValidating,
+      data,
+      fetchedIn,
+    });
+  }
+
   return {
     data: readonly(data),
     error: readonly(error),
     isValidating: readonly(isValidating),
-    mutate: (newValue: Data) => mutateGlobal(key.value, newValue),
+    mutate: (...params: OmitFirstArrayIndex<Parameters<typeof mutate>>) =>
+      mutate(key.value, ...params),
   };
 };

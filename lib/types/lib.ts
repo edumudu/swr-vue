@@ -1,3 +1,5 @@
+import { Ref } from 'vue';
+
 export type KeyArguments =
   | string
   | ([any, ...unknown[]] | readonly [any, ...unknown[]])
@@ -18,11 +20,22 @@ export interface CacheProvider<Data = any> {
   get(key: Key): Data | undefined;
   set(key: Key, value: Data): void;
   delete(key: Key): void;
+  clear(): void;
 }
 
+export type CacheState = {
+  data: Ref<any>;
+  error: Ref<any>;
+  isValidating: Ref<boolean>;
+  fetchedIn: Ref<Date>;
+};
+
 export type SWRConfig = {
-  cacheProvider?: CacheProvider;
+  cacheProvider?: CacheProvider<CacheState>;
   revalidateOnFocus?: boolean;
   revalidateOnReconnect?: boolean;
   revalidateIfStale?: boolean;
+  dedupingInterval?: number;
 };
+
+export type SWRComposableConfig = Omit<SWRConfig, 'cacheProvider'>;
