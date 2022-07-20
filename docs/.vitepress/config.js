@@ -48,18 +48,23 @@ function sidebar() {
   return [
     {
       text: 'Introduction',
-      collapsible: true,
       items: [
         { text: 'Getting started', link: '/getting-started' },
       ]
     },
     {
       text: 'Usage',
-      collapsible: true,
       items: [
-        { text: 'Options', link: '/options' },
         { text: 'Mutation', link: '/mutation' },
         { text: 'Global Configuration', link: '/global-configuration' },
+        { text: 'Data Fetching', link: '/data-fetching' },
+        { text: 'Conditional Fetching', link: '/conditional-fetching' },
+      ]
+    },
+    {
+      text: 'API',
+      items: [
+        { text: 'Options', link: '/options' },
       ]
     },
   ]
