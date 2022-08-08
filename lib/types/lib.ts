@@ -32,9 +32,29 @@ export type CacheState = {
 
 export type SWRConfig = {
   cacheProvider?: CacheProvider<CacheState>;
+
+  /**
+   * automatically revalidate when window gets focused
+   * @defaultValue true
+   */
   revalidateOnFocus?: boolean;
+
+  /**
+   * automatically revalidate when the browser regains a network connection (via `navigator.onLine`)
+   * @defaultValue true
+   */
   revalidateOnReconnect?: boolean;
+
+  /**
+   * automatically revalidate even if there is stale data
+   * @defaultValue true
+   */
   revalidateIfStale?: boolean;
+
+  /**
+   * dedupe requests with the same key in this time span in miliseconds
+   * @defaultValue: 2000
+   */
   dedupingInterval?: number;
 };
 
