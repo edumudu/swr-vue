@@ -31,31 +31,35 @@ export type CacheState = {
 };
 
 export type SWRConfig = {
-  cacheProvider?: CacheProvider<CacheState>;
+  /**
+   * stores the cached values
+   * @default new Map()
+   */
+  cacheProvider: CacheProvider<CacheState>;
 
   /**
    * automatically revalidate when window gets focused
-   * @defaultValue true
+   * @default true
    */
-  revalidateOnFocus?: boolean;
+  revalidateOnFocus: boolean;
 
   /**
    * automatically revalidate when the browser regains a network connection (via `navigator.onLine`)
-   * @defaultValue true
+   * @default true
    */
-  revalidateOnReconnect?: boolean;
+  revalidateOnReconnect: boolean;
 
   /**
    * automatically revalidate even if there is stale data
-   * @defaultValue true
+   * @default true
    */
-  revalidateIfStale?: boolean;
+  revalidateIfStale: boolean;
 
   /**
    * dedupe requests with the same key in this time span in miliseconds
-   * @defaultValue: 2000
+   * @default 2000
    */
-  dedupingInterval?: number;
+  dedupingInterval: number;
 };
 
-export type SWRComposableConfig = Omit<SWRConfig, 'cacheProvider'>;
+export type SWRComposableConfig = Omit<Partial<SWRConfig>, 'cacheProvider'>;

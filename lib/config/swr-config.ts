@@ -3,7 +3,7 @@ import { reactive } from 'vue';
 import { SWRConfig } from '@/types';
 import { MapAdapter } from '@/cache';
 
-export const defaultConfig: Required<SWRConfig> = {
+export const defaultConfig: SWRConfig = {
   cacheProvider: reactive(new MapAdapter()),
   revalidateOnFocus: true,
   revalidateOnReconnect: true,
