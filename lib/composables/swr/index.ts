@@ -12,6 +12,7 @@ export const useSWR = <Data = any, Error = any>(
   config: SWRComposableConfig = {},
 ) => {
   const { config: contextConfig, mutate } = useSWRConfig();
+  const mergedConfig = mergeConfig(contextConfig.value, config);
 
   const {
     cacheProvider,
@@ -19,7 +20,10 @@ export const useSWR = <Data = any, Error = any>(
     revalidateOnReconnect,
     revalidateIfStale,
     dedupingInterval,
-  } = mergeConfig(contextConfig.value, config);
+    fallbackData,
+    onSuccess,
+    onError,
+  } = mergedConfig;
 
   const { key, args: fetcherArgs } = toRefs(toReactive(computed(() => serializeKey(_key))));
 
@@ -28,7 +32,7 @@ export const useSWR = <Data = any, Error = any>(
 
   const error = valueInCache.value ? toRef(valueInCache.value, 'error') : ref<Error>();
   const isValidating = valueInCache.value ? toRef(valueInCache.value, 'isValidating') : ref(true);
-  const data = valueInCache.value ? toRef(valueInCache.value, 'data') : ref();
+  const data = valueInCache.value ? toRef(valueInCache.value, 'data') : ref(fallbackData);
   const fetchedIn = valueInCache.value ? toRef(valueInCache.value, 'fetchedIn') : ref(new Date());
 
   const fetchData = async () => {
@@ -46,8 +50,12 @@ export const useSWR = <Data = any, Error = any>(
 
       data.value = fetcherResponse;
       fetchedIn.value = new Date();
+
+      if (onSuccess) onSuccess(data.value, key.value, mergedConfig);
     } catch (err: any) {
       error.value = err;
+
+      if (onError) onError(err, key.value, mergedConfig);
     } finally {
       isValidating.value = false;
     }
