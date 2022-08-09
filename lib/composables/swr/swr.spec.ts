@@ -531,4 +531,41 @@ describe('useSWR', () => {
       expect.objectContaining(mergedConfig),
     );
   });
+
+  it('should return fallbackData as initial value', () => {
+    const fallbackData = 'fallback';
+
+    const { data } = useInjectedSetup(
+      () => configureGlobalSWR({ cacheProvider }),
+      () => useSWR(defaultKey, defaultFetcher, { fallbackData }),
+    );
+
+    expect(data.value).toBe(fallbackData);
+  });
+
+  it('should return global fallbackData as initial value', () => {
+    const fallbackData = 'fallback';
+
+    const { data } = useInjectedSetup(
+      () => configureGlobalSWR({ cacheProvider, fallbackData }),
+      () => useSWR(defaultKey, defaultFetcher),
+    );
+
+    expect(data.value).toBe(fallbackData);
+  });
+
+  it('should return stale data fallbackData and stale data are present', async () => {
+    const fallbackData = 'fallback';
+    const cahedData = 'cached value';
+
+    setDataToCache(defaultKey, { data: cahedData });
+
+    const { data } = useInjectedSetup(
+      () => configureGlobalSWR({ cacheProvider, fallbackData }),
+      () => useSWR(defaultKey, defaultFetcher),
+    );
+
+    await flushPromises();
+    expect(data.value).toBe(cahedData);
+  });
 });
