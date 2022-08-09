@@ -470,4 +470,65 @@ describe('useSWR', () => {
 
     expect(differentData.value).toEqual('should not change');
   });
+
+  it('should call local and global onSuccess if fetcher successes', async () => {
+    const onSuccess = vi.fn();
+    const globalOnSuccess = vi.fn();
+    const fetcherResult = 'result';
+
+    useInjectedSetup(
+      () => configureGlobalSWR({ cacheProvider, onSuccess: globalOnSuccess }),
+      () => useSWR(defaultKey, () => fetcherResult, { onSuccess }),
+    );
+
+    await flushPromises();
+    expect(onSuccess).toHaveBeenCalledOnce();
+    expect(onSuccess).toHaveBeenCalledWith(fetcherResult, defaultKey, expect.anything());
+    expect(globalOnSuccess).toHaveBeenCalledOnce();
+    expect(globalOnSuccess).toHaveBeenCalledWith(fetcherResult, defaultKey, expect.anything());
+  });
+
+  it('should call local and global onError if fetcher throws', async () => {
+    const onError = vi.fn();
+    const globalOnError = vi.fn();
+    const error = new Error();
+
+    useInjectedSetup(
+      () => configureGlobalSWR({ cacheProvider, onError: globalOnError }),
+      () => useSWR(defaultKey, () => Promise.reject(error), { onError }),
+    );
+
+    await flushPromises();
+    expect(onError).toHaveBeenCalledOnce();
+    expect(onError).toHaveBeenCalledWith(error, defaultKey, expect.anything());
+    expect(globalOnError).toHaveBeenCalledOnce();
+    expect(globalOnError).toHaveBeenCalledWith(error, defaultKey, expect.anything());
+  });
+
+  it('should call local and global onError and onSuccess with local and global configs merged', async () => {
+    const onError = vi.fn();
+    const globalOnError = vi.fn();
+    const error = new Error();
+
+    const localConfig: SWRComposableConfig = { dedupingInterval: 1 };
+    const globalConfig: SWRComposableConfig = { revalidateOnFocus: false };
+    const mergedConfig = { ...localConfig, ...globalConfig };
+
+    useInjectedSetup(
+      () => configureGlobalSWR({ ...globalConfig, cacheProvider, onError: globalOnError }),
+      () => useSWR(defaultKey, () => Promise.reject(error), { ...localConfig, onError }),
+    );
+
+    await flushPromises();
+    expect(onError).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.objectContaining(mergedConfig),
+    );
+    expect(globalOnError).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.objectContaining(mergedConfig),
+    );
+  });
 });

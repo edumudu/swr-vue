@@ -30,12 +30,46 @@ export type CacheState = {
   fetchedIn: Ref<Date>;
 };
 
-export type SWRConfig = {
-  cacheProvider?: CacheProvider<CacheState>;
-  revalidateOnFocus?: boolean;
-  revalidateOnReconnect?: boolean;
-  revalidateIfStale?: boolean;
-  dedupingInterval?: number;
+export type SWRConfig<Data = any, Err = any> = {
+  /**
+   * stores the cached values
+   * @default new Map()
+   */
+  cacheProvider: CacheProvider<CacheState>;
+
+  /**
+   * automatically revalidate when window gets focused
+   * @default true
+   */
+  revalidateOnFocus: boolean;
+
+  /**
+   * automatically revalidate when the browser regains a network connection (via `navigator.onLine`)
+   * @default true
+   */
+  revalidateOnReconnect: boolean;
+
+  /**
+   * automatically revalidate even if there is stale data
+   * @default true
+   */
+  revalidateIfStale: boolean;
+
+  /**
+   * dedupe requests with the same key in this time span in miliseconds
+   * @default 2000
+   */
+  dedupingInterval: number;
+
+  /**
+   * called when a request finishes successfully
+   */
+  onSuccess?: (data: Data, key: string, config: SWRConfig<Data, Err>) => void;
+
+  /**
+   * called when a request returns an error
+   */
+  onError?: (err: Err, key: string, config: SWRConfig<Data, Err>) => void;
 };
 
-export type SWRComposableConfig = Omit<SWRConfig, 'cacheProvider'>;
+export type SWRComposableConfig = Omit<Partial<SWRConfig>, 'cacheProvider'>;

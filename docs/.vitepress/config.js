@@ -58,6 +58,7 @@ function sidebar() {
         { text: 'Mutation', link: '/mutation' },
         { text: 'Global Configuration', link: '/global-configuration' },
         { text: 'Data Fetching', link: '/data-fetching' },
+        { text: 'Error Handling', link: '/error-handling' },
         { text: 'Conditional Fetching', link: '/conditional-fetching' },
       ]
     },
