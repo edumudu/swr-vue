@@ -20,6 +20,7 @@ export const useSWR = <Data = any, Error = any>(
     revalidateOnReconnect,
     revalidateIfStale,
     dedupingInterval,
+    fallbackData,
     onSuccess,
     onError,
   } = mergedConfig;
@@ -31,7 +32,7 @@ export const useSWR = <Data = any, Error = any>(
 
   const error = valueInCache.value ? toRef(valueInCache.value, 'error') : ref<Error>();
   const isValidating = valueInCache.value ? toRef(valueInCache.value, 'isValidating') : ref(true);
-  const data = valueInCache.value ? toRef(valueInCache.value, 'data') : ref();
+  const data = valueInCache.value ? toRef(valueInCache.value, 'data') : ref(fallbackData);
   const fetchedIn = valueInCache.value ? toRef(valueInCache.value, 'fetchedIn') : ref(new Date());
 
   const fetchData = async () => {

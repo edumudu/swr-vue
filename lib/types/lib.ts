@@ -62,6 +62,11 @@ export type SWRConfig<Data = any, Err = any> = {
   dedupingInterval: number;
 
   /**
+   * initial data to be returned (note: ***This is per-composable***)
+   */
+  fallbackData?: Data;
+
+  /**
    * called when a request finishes successfully
    */
   onSuccess?: (data: Data, key: string, config: SWRConfig<Data, Err>) => void;
