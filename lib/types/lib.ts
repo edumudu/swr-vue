@@ -60,6 +60,16 @@ export type SWRConfig<Data = any, Err = any> = {
    * @default 2000
    */
   dedupingInterval: number;
+
+  /**
+   * called when a request finishes successfully
+   */
+  onSuccess?: (data: Data, key: string, config: SWRConfig<Data, Err>) => void;
+
+  /**
+   * called when a request returns an error
+   */
+  onError?: (err: Err, key: string, config: SWRConfig<Data, Err>) => void;
 };
 
 export type SWRComposableConfig = Omit<Partial<SWRConfig>, 'cacheProvider'>;
