@@ -30,7 +30,7 @@ export type CacheState = {
   fetchedIn: Ref<Date>;
 };
 
-export type SWRConfig = {
+export type SWRConfig<Data = any, Err = any> = {
   /**
    * stores the cached values
    * @default new Map()
