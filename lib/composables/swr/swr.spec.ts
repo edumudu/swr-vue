@@ -11,7 +11,7 @@ import { configureGlobalSWR } from '../global-swr-config';
 
 const cacheProvider = reactive<CacheProvider>(new Map());
 const defaultKey = 'defaultKey';
-const defaultFetcher = (key: string) => key;
+const defaultFetcher = vi.fn((key: string) => key);
 const defaultOptions: SWRComposableConfig = { dedupingInterval: 0 };
 
 const setDataToCache = (key: Key, data: UnwrapRef<Partial<CacheState>>) => {
@@ -32,6 +32,7 @@ const dispatchEvent = (eventName: string, target: Element | Window | Document) =
 describe('useSWR', () => {
   beforeEach(() => {
     vi.useRealTimers();
+    vi.resetAllMocks();
     cacheProvider.clear();
   });
 
@@ -149,16 +150,49 @@ describe('useSWR', () => {
 
     const fetcher = vi.fn().mockResolvedValue('FetcherResult');
     const { data } = useInjectedSetup(
-      () => configureGlobalSWR({ cacheProvider }),
+      () => configureGlobalSWR({ cacheProvider, focusThrottleInterval: 0 }),
       () => useSWR(defaultKey, fetcher, defaultOptions),
     );
 
-    dispatchEvent('blur', document);
     dispatchEvent('focus', document);
 
     await flushPromises();
     expect(fetcher).toBeCalledTimes(2);
     expect(data.value).toBe('FetcherResult');
+  });
+
+  it('should revalidate on focus just once inside focusThrottleInterval time span', async () => {
+    vi.useFakeTimers();
+    setDataToCache(defaultKey, { data: 'cachedData' });
+
+    const focusThrottleInterval = 4000;
+    const fetcher = vi.fn(defaultFetcher);
+
+    useInjectedSetup(
+      () =>
+        configureGlobalSWR({
+          cacheProvider,
+          focusThrottleInterval,
+          revalidateOnFocus: true,
+        }),
+      () => useSWR(defaultKey, fetcher, defaultOptions),
+    );
+
+    dispatchEvent('focus', document);
+    expect(fetcher).toBeCalledTimes(1);
+
+    vi.advanceTimersByTime(focusThrottleInterval - 1);
+    dispatchEvent('focus', document);
+    expect(fetcher).toBeCalledTimes(1);
+
+    vi.advanceTimersByTime(1);
+    dispatchEvent('focus', document);
+    expect(fetcher).toBeCalledTimes(2);
+    await flushPromises();
+
+    vi.advanceTimersByTime(focusThrottleInterval - 1);
+    dispatchEvent('focus', document);
+    expect(fetcher).toBeCalledTimes(2);
   });
 
   it('should not revalidate when focus if config revalidateOnFocus is false', async () => {
@@ -532,15 +566,20 @@ describe('useSWR', () => {
     );
   });
 
-  it('should return fallbackData as initial value', () => {
-    const fallbackData = 'fallback';
-
+  it.each([
+    'fallback',
+    'Lorem ispum dolor sit amet',
+    100,
+    ['item1', 'item2'],
+    { a: 1, b: '' },
+    null,
+  ])('should return fallbackData "%s" as initial value', (fallbackData) => {
     const { data } = useInjectedSetup(
       () => configureGlobalSWR({ cacheProvider }),
       () => useSWR(defaultKey, defaultFetcher, { fallbackData }),
     );
 
-    expect(data.value).toBe(fallbackData);
+    expect(data.value).toEqual(fallbackData);
   });
 
   it('should return global fallbackData as initial value', () => {
@@ -554,7 +593,7 @@ describe('useSWR', () => {
     expect(data.value).toBe(fallbackData);
   });
 
-  it('should return stale data fallbackData and stale data are present', async () => {
+  it('should return stale data if fallbackData and stale data are present', async () => {
     const fallbackData = 'fallback';
     const cahedData = 'cached value';
 
@@ -567,5 +606,61 @@ describe('useSWR', () => {
 
     await flushPromises();
     expect(data.value).toBe(cahedData);
+  });
+
+  it.each([
+    'fallback',
+    'Lorem ispum dolor sit amet',
+    100,
+    ['item1', 'item2'],
+    { a: 1, b: '' },
+    null,
+  ])('should return data "%s" in fallback as initial value', (fallbackData) => {
+    const fallback = { [defaultKey]: fallbackData };
+
+    const { data } = useInjectedSetup(
+      () => configureGlobalSWR({ cacheProvider }),
+      () => useSWR(defaultKey, defaultFetcher, { fallback }),
+    );
+
+    expect(data.value).toEqual(fallbackData);
+  });
+
+  it('should return data in global fallback as initial value', () => {
+    const fallback = { [defaultKey]: 'fallback' };
+
+    const { data } = useInjectedSetup(
+      () => configureGlobalSWR({ cacheProvider, fallback }),
+      () => useSWR(defaultKey, defaultFetcher),
+    );
+
+    expect(data.value).toBe('fallback');
+  });
+
+  it('should return stale data if fallback and stale data are present', async () => {
+    const fallback = { [defaultKey]: 'fallback' };
+    const cahedData = 'cached value';
+
+    setDataToCache(defaultKey, { data: cahedData });
+
+    const { data } = useInjectedSetup(
+      () => configureGlobalSWR({ cacheProvider, fallback }),
+      () => useSWR(defaultKey, defaultFetcher),
+    );
+
+    await flushPromises();
+    expect(data.value).toBe(cahedData);
+  });
+
+  it('should give priority to fallbackData over fallback as initial value', () => {
+    const fallback = { [defaultKey]: 'fallback' };
+    const fallbackData = 'fallbackData';
+
+    const { data } = useInjectedSetup(
+      () => configureGlobalSWR({ cacheProvider, fallback, fallbackData }),
+      () => useSWR(defaultKey, defaultFetcher),
+    );
+
+    expect(data.value).toBe(fallbackData);
   });
 });
