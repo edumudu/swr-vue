@@ -8,5 +8,6 @@ export const defaultConfig: SWRConfig = {
   revalidateOnFocus: true,
   revalidateOnReconnect: true,
   revalidateIfStale: true,
+  focusThrottleInterval: 5000,
   dedupingInterval: 2000,
 };
