@@ -25,5 +25,6 @@ const { data, error, isValidating, mutate } = useSWR(key, fetcher, options)
 - `dedupingInterval = 2000` - dedupe requests with the same key in this time span in milliseconds
 - `fallback` - a key-value object of multiple fallback data
 - `fallbackData` - initial data to be returned (this has priority over `fallback` option)
+- `focusThrottleInterval = 5000` - only revalidate on focus once during a time span in milliseconds
 - `onSuccess(data, key, config)` - callback function when a request finishes successfully
 - `onError(err, key, config)` - callback function when a request returns an error

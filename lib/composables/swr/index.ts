@@ -22,6 +22,7 @@ export const useSWR = <Data = any, Error = any>(
     dedupingInterval,
     fallback,
     fallbackData,
+    focusThrottleInterval,
     onSuccess,
     onError,
   } = mergedConfig;
@@ -63,8 +64,16 @@ export const useSWR = <Data = any, Error = any>(
     }
   };
 
+  const onWindowFocus = () => {
+    const fetchedInTimestamp = fetchedIn.value?.getTime() || 0;
+
+    if (fetchedInTimestamp + focusThrottleInterval > Date.now()) return;
+
+    fetchData();
+  };
+
   if (revalidateOnFocus && (revalidateIfStale || !data.value)) {
-    useEventListener(window, 'focus', () => fetchData());
+    useEventListener(window, 'focus', onWindowFocus);
   }
 
   if (revalidateOnReconnect && (revalidateIfStale || !data.value)) {
