@@ -11,7 +11,7 @@ import { configureGlobalSWR } from '../global-swr-config';
 
 const cacheProvider = reactive<CacheProvider>(new Map());
 const defaultKey = 'defaultKey';
-const defaultFetcher = (key: string) => key;
+const defaultFetcher = vi.fn((key: string) => key);
 const defaultOptions: SWRComposableConfig = { dedupingInterval: 0 };
 
 const setDataToCache = (key: Key, data: UnwrapRef<Partial<CacheState>>) => {
@@ -32,6 +32,7 @@ const dispatchEvent = (eventName: string, target: Element | Window | Document) =
 describe('useSWR', () => {
   beforeEach(() => {
     vi.useRealTimers();
+    vi.resetAllMocks();
     cacheProvider.clear();
   });
 
@@ -149,16 +150,49 @@ describe('useSWR', () => {
 
     const fetcher = vi.fn().mockResolvedValue('FetcherResult');
     const { data } = useInjectedSetup(
-      () => configureGlobalSWR({ cacheProvider }),
+      () => configureGlobalSWR({ cacheProvider, focusThrottleInterval: 0 }),
       () => useSWR(defaultKey, fetcher, defaultOptions),
     );
 
-    dispatchEvent('blur', document);
     dispatchEvent('focus', document);
 
     await flushPromises();
     expect(fetcher).toBeCalledTimes(2);
     expect(data.value).toBe('FetcherResult');
+  });
+
+  it('should revalidate on focus just once inside focusThrottleInterval time span', async () => {
+    vi.useFakeTimers();
+    setDataToCache(defaultKey, { data: 'cachedData' });
+
+    const focusThrottleInterval = 4000;
+    const fetcher = vi.fn(defaultFetcher);
+
+    useInjectedSetup(
+      () =>
+        configureGlobalSWR({
+          cacheProvider,
+          focusThrottleInterval,
+          revalidateOnFocus: true,
+        }),
+      () => useSWR(defaultKey, fetcher, defaultOptions),
+    );
+
+    dispatchEvent('focus', document);
+    expect(fetcher).toBeCalledTimes(1);
+
+    vi.advanceTimersByTime(focusThrottleInterval - 1);
+    dispatchEvent('focus', document);
+    expect(fetcher).toBeCalledTimes(1);
+
+    vi.advanceTimersByTime(1);
+    dispatchEvent('focus', document);
+    expect(fetcher).toBeCalledTimes(2);
+    await flushPromises();
+
+    vi.advanceTimersByTime(focusThrottleInterval - 1);
+    dispatchEvent('focus', document);
+    expect(fetcher).toBeCalledTimes(2);
   });
 
   it('should not revalidate when focus if config revalidateOnFocus is false', async () => {
