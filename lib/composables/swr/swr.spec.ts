@@ -532,15 +532,20 @@ describe('useSWR', () => {
     );
   });
 
-  it('should return fallbackData as initial value', () => {
-    const fallbackData = 'fallback';
-
+  it.each([
+    'fallback',
+    'Lorem ispum dolor sit amet',
+    100,
+    ['item1', 'item2'],
+    { a: 1, b: '' },
+    null,
+  ])('should return fallbackData "%s" as initial value', (fallbackData) => {
     const { data } = useInjectedSetup(
       () => configureGlobalSWR({ cacheProvider }),
       () => useSWR(defaultKey, defaultFetcher, { fallbackData }),
     );
 
-    expect(data.value).toBe(fallbackData);
+    expect(data.value).toEqual(fallbackData);
   });
 
   it('should return global fallbackData as initial value', () => {
@@ -554,7 +559,7 @@ describe('useSWR', () => {
     expect(data.value).toBe(fallbackData);
   });
 
-  it('should return stale data fallbackData and stale data are present', async () => {
+  it('should return stale data if fallbackData and stale data are present', async () => {
     const fallbackData = 'fallback';
     const cahedData = 'cached value';
 
@@ -567,5 +572,61 @@ describe('useSWR', () => {
 
     await flushPromises();
     expect(data.value).toBe(cahedData);
+  });
+
+  it.each([
+    'fallback',
+    'Lorem ispum dolor sit amet',
+    100,
+    ['item1', 'item2'],
+    { a: 1, b: '' },
+    null,
+  ])('should return data "%s" in fallback as initial value', (fallbackData) => {
+    const fallback = { [defaultKey]: fallbackData };
+
+    const { data } = useInjectedSetup(
+      () => configureGlobalSWR({ cacheProvider }),
+      () => useSWR(defaultKey, defaultFetcher, { fallback }),
+    );
+
+    expect(data.value).toEqual(fallbackData);
+  });
+
+  it('should return data in global fallback as initial value', () => {
+    const fallback = { [defaultKey]: 'fallback' };
+
+    const { data } = useInjectedSetup(
+      () => configureGlobalSWR({ cacheProvider, fallback }),
+      () => useSWR(defaultKey, defaultFetcher),
+    );
+
+    expect(data.value).toBe('fallback');
+  });
+
+  it('should return stale data if fallback and stale data are present', async () => {
+    const fallback = { [defaultKey]: 'fallback' };
+    const cahedData = 'cached value';
+
+    setDataToCache(defaultKey, { data: cahedData });
+
+    const { data } = useInjectedSetup(
+      () => configureGlobalSWR({ cacheProvider, fallback }),
+      () => useSWR(defaultKey, defaultFetcher),
+    );
+
+    await flushPromises();
+    expect(data.value).toBe(cahedData);
+  });
+
+  it('should give priority to fallbackData over fallback as initial value', () => {
+    const fallback = { [defaultKey]: 'fallback' };
+    const fallbackData = 'fallbackData';
+
+    const { data } = useInjectedSetup(
+      () => configureGlobalSWR({ cacheProvider, fallback, fallbackData }),
+      () => useSWR(defaultKey, defaultFetcher),
+    );
+
+    expect(data.value).toBe(fallbackData);
   });
 });

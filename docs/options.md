@@ -23,6 +23,7 @@ const { data, error, isValidating, mutate } = useSWR(key, fetcher, options)
 - `revalidateOnReconnect = true` - Automatically revalidate when the browser regains a network connection
 - `revalidateIfStale = true` - Automatically revalidate if there is stale data
 - `dedupingInterval = 2000` - dedupe requests with the same key in this time span in milliseconds
-- `fallbackData` - initial data to be returned (note: This is per-composable, but also be passed in global config)
+- `fallback` - a key-value object of multiple fallback data
+- `fallbackData` - initial data to be returned (this has priority over `fallback` option)
 - `onSuccess(data, key, config)` - callback function when a request finishes successfully
 - `onError(err, key, config)` - callback function when a request returns an error
