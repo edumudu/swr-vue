@@ -20,6 +20,7 @@ export const useSWR = <Data = any, Error = any>(
     revalidateOnReconnect,
     revalidateIfStale,
     dedupingInterval,
+    fallback,
     fallbackData,
     focusThrottleInterval,
     onSuccess,
@@ -27,13 +28,14 @@ export const useSWR = <Data = any, Error = any>(
   } = mergedConfig;
 
   const { key, args: fetcherArgs } = toRefs(toReactive(computed(() => serializeKey(_key))));
+  const fallbackValue = fallbackData === undefined ? fallback?.[key.value] : fallbackData;
 
   const valueInCache = computed(() => cacheProvider.get(key.value));
   const hasCachedValue = computed(() => !!valueInCache.value);
 
   const error = valueInCache.value ? toRef(valueInCache.value, 'error') : ref<Error>();
   const isValidating = valueInCache.value ? toRef(valueInCache.value, 'isValidating') : ref(true);
-  const data = valueInCache.value ? toRef(valueInCache.value, 'data') : ref(fallbackData);
+  const data = valueInCache.value ? toRef(valueInCache.value, 'data') : ref(fallbackValue);
   const fetchedIn = valueInCache.value ? toRef(valueInCache.value, 'fetchedIn') : ref(new Date());
 
   const fetchData = async () => {

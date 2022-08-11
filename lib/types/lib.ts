@@ -62,13 +62,19 @@ export type SWRConfig<Data = any, Err = any> = {
   dedupingInterval: number;
 
   /**
+   * initial data to be returned
    * only revalidate on focus once during a time span in milliseconds
    * @default 5000
    */
   focusThrottleInterval: number;
 
   /**
-   * initial data to be returned (note: ***This is per-composable***)
+   * a key-value object of multiple fallback data
+   */
+  fallback?: Record<string, any>;
+
+  /**
+   * initial data to be returned
    */
   fallbackData?: Data;
 
