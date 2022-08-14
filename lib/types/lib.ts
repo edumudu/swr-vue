@@ -62,6 +62,25 @@ export type SWRConfig<Data = any, Err = any> = {
   dedupingInterval: number;
 
   /**
+   * Disabled by default
+   * polling interval in milliseconds
+   * @default 0
+   */
+  refreshInterval: number;
+
+  /**
+   * polling when the window is invisible (if `refreshInterval` is enabled)
+   * @default false
+   */
+  refreshWhenHidden: boolean;
+
+  /**
+   * polling when the browser is offline (determined by `navigator.onLine`)
+   * @default false
+   */
+  refreshWhenOffline: boolean;
+
+  /**
    * initial data to be returned
    * only revalidate on focus once during a time span in milliseconds
    * @default 5000

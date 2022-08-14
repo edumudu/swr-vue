@@ -34,6 +34,9 @@ describe('useSWR', () => {
     vi.useRealTimers();
     vi.resetAllMocks();
     cacheProvider.clear();
+
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
+    vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
   });
 
   it('should return a ref to data, error and isValidating', () => {
@@ -662,5 +665,122 @@ describe('useSWR', () => {
     );
 
     expect(data.value).toBe(fallbackData);
+  });
+
+  it('should not refresh if refreshInterval = 0', async () => {
+    const fetcher = vi.fn(defaultFetcher);
+
+    vi.useFakeTimers();
+
+    useInjectedSetup(
+      () => configureGlobalSWR({ cacheProvider }),
+      () => useSWR(defaultKey, fetcher, { refreshInterval: 0 }),
+    );
+
+    await flushPromises();
+    expect(fetcher).toHaveBeenCalledOnce();
+
+    vi.advanceTimersByTime(10000);
+    expect(fetcher).toHaveBeenCalledOnce();
+  });
+
+  it('should refresh in refreshInterval time span', async () => {
+    const fetcher = vi.fn(defaultFetcher);
+    const refreshInterval = 2000;
+
+    vi.useFakeTimers();
+
+    useInjectedSetup(
+      () => configureGlobalSWR({ cacheProvider }),
+      () => useSWR(defaultKey, fetcher, { refreshInterval }),
+    );
+
+    await flushPromises();
+    expect(fetcher).toHaveBeenCalledOnce();
+
+    vi.advanceTimersByTime(refreshInterval / 2);
+    expect(fetcher).toHaveBeenCalledOnce();
+
+    vi.advanceTimersByTime(refreshInterval / 2);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+
+    vi.advanceTimersByTime(refreshInterval * 3);
+    expect(fetcher).toHaveBeenCalledTimes(5);
+  });
+
+  it('should not refresh when offline and refreshWhenOffline = false', async () => {
+    const fetcher = vi.fn(defaultFetcher);
+    const refreshInterval = 2000;
+
+    vi.useFakeTimers();
+
+    useInjectedSetup(
+      () => configureGlobalSWR({ cacheProvider }),
+      () => useSWR(defaultKey, fetcher, { refreshInterval, refreshWhenOffline: false }),
+    );
+
+    await flushPromises();
+    expect(fetcher).toHaveBeenCalledOnce();
+
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+    vi.advanceTimersByTime(refreshInterval * 3);
+    expect(fetcher).toHaveBeenCalledOnce();
+  });
+
+  it('should refresh when offline and refreshWhenOffline = true', async () => {
+    const fetcher = vi.fn(defaultFetcher);
+    const refreshInterval = 2000;
+
+    vi.useFakeTimers();
+
+    useInjectedSetup(
+      () => configureGlobalSWR({ cacheProvider }),
+      () => useSWR(defaultKey, fetcher, { refreshInterval, refreshWhenOffline: true }),
+    );
+
+    await flushPromises();
+    expect(fetcher).toHaveBeenCalledOnce();
+
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+    vi.advanceTimersByTime(refreshInterval * 3);
+    expect(fetcher).toHaveBeenCalledTimes(4);
+  });
+
+  it('should not refresh when window is hidden and refreshWhenHidden = false', async () => {
+    const fetcher = vi.fn(defaultFetcher);
+    const refreshInterval = 2000;
+
+    vi.useFakeTimers();
+
+    useInjectedSetup(
+      () => configureGlobalSWR({ cacheProvider }),
+      () => useSWR(defaultKey, fetcher, { refreshInterval, refreshWhenHidden: false }),
+    );
+
+    await flushPromises();
+    expect(fetcher).toHaveBeenCalledOnce();
+
+    vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+    vi.advanceTimersByTime(refreshInterval * 3);
+    expect(fetcher).toHaveBeenCalledOnce();
+  });
+
+  it('should refresh when window is hidden and refreshWhenHidden = true', async () => {
+    const fetcher = vi.fn(defaultFetcher);
+    const refreshInterval = 2000;
+
+    vi.useFakeTimers();
+
+    useInjectedSetup(
+      () => configureGlobalSWR({ cacheProvider }),
+      () => useSWR(defaultKey, fetcher, { refreshInterval, refreshWhenHidden: true }),
+    );
+
+    await flushPromises();
+    expect(fetcher).toHaveBeenCalledOnce();
+
+    vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+    vi.advanceTimersByTime(refreshInterval * 3);
+    expect(fetcher).toHaveBeenCalledTimes(4);
   });
 });

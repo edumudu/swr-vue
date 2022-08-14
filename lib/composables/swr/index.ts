@@ -1,5 +1,5 @@
 import { computed, ref, readonly, watch, toRefs, toRef } from 'vue';
-import { toReactive, useEventListener } from '@vueuse/core';
+import { toReactive, useEventListener, useIntervalFn } from '@vueuse/core';
 
 import type { OmitFirstArrayIndex, SWRComposableConfig, SWRFetcher, SWRKey } from '@/types';
 import { serializeKey } from '@/utils';
@@ -23,6 +23,9 @@ export const useSWR = <Data = any, Error = any>(
     fallback,
     fallbackData,
     focusThrottleInterval,
+    refreshInterval,
+    refreshWhenHidden,
+    refreshWhenOffline,
     onSuccess,
     onError,
   } = mergedConfig;
@@ -64,6 +67,15 @@ export const useSWR = <Data = any, Error = any>(
     }
   };
 
+  const onRefresh = () => {
+    const shouldSkipRefreshOffline = !refreshWhenOffline && !navigator.onLine;
+    const shouldSkipRefreshHidden = !refreshWhenHidden && document.visibilityState === 'hidden';
+
+    if (shouldSkipRefreshOffline || shouldSkipRefreshHidden) return;
+
+    fetchData();
+  };
+
   const onWindowFocus = () => {
     const fetchedInTimestamp = fetchedIn.value?.getTime() || 0;
 
@@ -78,6 +90,10 @@ export const useSWR = <Data = any, Error = any>(
 
   if (revalidateOnReconnect && (revalidateIfStale || !data.value)) {
     useEventListener(window, 'online', () => fetchData());
+  }
+
+  if (refreshInterval) {
+    useIntervalFn(onRefresh, refreshInterval);
   }
 
   watch(
