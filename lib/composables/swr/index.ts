@@ -1,4 +1,4 @@
-import { computed, ref, readonly, watch, toRefs, toRef } from 'vue';
+import { computed, readonly, watch, toRefs, toRef, unref, Ref } from 'vue';
 import { toReactive, useEventListener, useIntervalFn } from '@vueuse/core';
 
 import type { OmitFirstArrayIndex, SWRComposableConfig, SWRFetcher, SWRKey } from '@/types';
@@ -36,10 +36,10 @@ export const useSWR = <Data = any, Error = any>(
   const valueInCache = computed(() => cacheProvider.get(key.value));
   const hasCachedValue = computed(() => !!valueInCache.value);
 
-  const error = valueInCache.value ? toRef(valueInCache.value, 'error') : ref<Error>();
-  const isValidating = valueInCache.value ? toRef(valueInCache.value, 'isValidating') : ref(true);
-  const data = valueInCache.value ? toRef(valueInCache.value, 'data') : ref(fallbackValue);
-  const fetchedIn = valueInCache.value ? toRef(valueInCache.value, 'fetchedIn') : ref(new Date());
+  const error: Ref<Error | undefined> = toRef(valueInCache.value || { error: undefined }, 'error');
+  const data: Ref<Data | undefined> = toRef(valueInCache.value || { data: fallbackValue }, 'data');
+  const isValidating = toRef(valueInCache.value || { isValidating: true }, 'isValidating');
+  const fetchedIn = toRef(valueInCache.value || { fetchedIn: new Date() }, 'fetchedIn');
 
   const fetchData = async () => {
     const timestampToDedupExpire = (fetchedIn.value?.getTime() || 0) + dedupingInterval;
@@ -96,6 +96,13 @@ export const useSWR = <Data = any, Error = any>(
     useIntervalFn(onRefresh, refreshInterval);
   }
 
+  watch(valueInCache, (newValueInCache) => {
+    data.value = newValueInCache?.data;
+    error.value = newValueInCache?.error;
+    isValidating.value = newValueInCache?.isValidating ?? isValidating.value;
+    fetchedIn.value = newValueInCache?.fetchedIn ?? fetchedIn.value;
+  });
+
   watch(
     key,
     (newKey, oldKey) => {
@@ -109,8 +116,8 @@ export const useSWR = <Data = any, Error = any>(
   if (!hasCachedValue.value) {
     cacheProvider.set(key.value, {
       error,
-      isValidating,
       data,
+      isValidating,
       fetchedIn,
     });
   }
