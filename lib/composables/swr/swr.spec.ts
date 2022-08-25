@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { isRef, reactive, ref, UnwrapRef } from 'vue';
+import { isRef, nextTick, reactive, ref, UnwrapRef } from 'vue';
 import flushPromises from 'flush-promises';
 
 import { withSetup } from '@/utils/with-setup';
@@ -18,7 +18,7 @@ const setDataToCache = (key: Key, data: UnwrapRef<Partial<CacheState>>) => {
   cacheProvider.set(key, {
     error: ref(data.error),
     data: ref(data.data),
-    isValidation: ref(data.isValidating || false),
+    isValidating: ref(data.isValidating || false),
     fetchedIn: ref(data.fetchedIn || new Date()),
   });
 };
@@ -102,7 +102,7 @@ describe('useSWR', () => {
     expect(isValidating.value).toBeFalsy();
   });
 
-  it('should set the same error in differnt `useSWR` calls with the same key', async () => {
+  it('should set the same error in different `useSWR` calls with the same key', async () => {
     const [error1, error2] = useInjectedSetup(
       () => configureGlobalSWR({ cacheProvider }),
       () => {
@@ -115,7 +115,7 @@ describe('useSWR', () => {
       },
     );
 
-    await flushPromises();
+    await nextTick();
     expect(error1.value).toBeInstanceOf(Error);
     expect(error2.value).toBeInstanceOf(Error);
     expect(error1.value).toBe(error2.value);
@@ -567,104 +567,6 @@ describe('useSWR', () => {
       expect.anything(),
       expect.objectContaining(mergedConfig),
     );
-  });
-
-  it.each([
-    'fallback',
-    'Lorem ispum dolor sit amet',
-    100,
-    ['item1', 'item2'],
-    { a: 1, b: '' },
-    null,
-  ])('should return fallbackData "%s" as initial value', (fallbackData) => {
-    const { data } = useInjectedSetup(
-      () => configureGlobalSWR({ cacheProvider }),
-      () => useSWR(defaultKey, defaultFetcher, { fallbackData }),
-    );
-
-    expect(data.value).toEqual(fallbackData);
-  });
-
-  it('should return global fallbackData as initial value', () => {
-    const fallbackData = 'fallback';
-
-    const { data } = useInjectedSetup(
-      () => configureGlobalSWR({ cacheProvider, fallbackData }),
-      () => useSWR(defaultKey, defaultFetcher),
-    );
-
-    expect(data.value).toBe(fallbackData);
-  });
-
-  it('should return stale data if fallbackData and stale data are present', async () => {
-    const fallbackData = 'fallback';
-    const cahedData = 'cached value';
-
-    setDataToCache(defaultKey, { data: cahedData });
-
-    const { data } = useInjectedSetup(
-      () => configureGlobalSWR({ cacheProvider, fallbackData }),
-      () => useSWR(defaultKey, defaultFetcher),
-    );
-
-    await flushPromises();
-    expect(data.value).toBe(cahedData);
-  });
-
-  it.each([
-    'fallback',
-    'Lorem ispum dolor sit amet',
-    100,
-    ['item1', 'item2'],
-    { a: 1, b: '' },
-    null,
-  ])('should return data "%s" in fallback as initial value', (fallbackData) => {
-    const fallback = { [defaultKey]: fallbackData };
-
-    const { data } = useInjectedSetup(
-      () => configureGlobalSWR({ cacheProvider }),
-      () => useSWR(defaultKey, defaultFetcher, { fallback }),
-    );
-
-    expect(data.value).toEqual(fallbackData);
-  });
-
-  it('should return data in global fallback as initial value', () => {
-    const fallback = { [defaultKey]: 'fallback' };
-
-    const { data } = useInjectedSetup(
-      () => configureGlobalSWR({ cacheProvider, fallback }),
-      () => useSWR(defaultKey, defaultFetcher),
-    );
-
-    expect(data.value).toBe('fallback');
-  });
-
-  it('should return stale data if fallback and stale data are present', async () => {
-    const fallback = { [defaultKey]: 'fallback' };
-    const cahedData = 'cached value';
-
-    setDataToCache(defaultKey, { data: cahedData });
-
-    const { data } = useInjectedSetup(
-      () => configureGlobalSWR({ cacheProvider, fallback }),
-      () => useSWR(defaultKey, defaultFetcher),
-    );
-
-    await flushPromises();
-    expect(data.value).toBe(cahedData);
-  });
-
-  it('should give priority to fallbackData over fallback as initial value', () => {
-    const fallback = { [defaultKey]: 'fallback' };
-    const fallbackData = 'fallbackData';
-
-    const { data } = useInjectedSetup(
-      () => configureGlobalSWR({ cacheProvider, fallback, fallbackData }),
-      () => useSWR(defaultKey, defaultFetcher),
-    );
-
-    expect(data.value).toBe(fallbackData);
   });
 
   it('should not refresh if refreshInterval = 0', async () => {
