@@ -3,10 +3,16 @@
 import { resolve } from 'node:path';
 
 import { defineConfig } from 'vite';
-import ViteTsconfigPaths from 'vite-tsconfig-paths';
+import ViteDts from 'vite-plugin-dts';
 
 export default defineConfig({
-  plugins: [ViteTsconfigPaths()],
+  plugins: [ViteDts({ outputDir: resolve(__dirname, 'dist', 'types') })],
+
+  resolve: {
+    alias: {
+      '@': resolve(__dirname, 'lib'),
+    },
+  },
 
   build: {
     lib: {
