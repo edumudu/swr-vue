@@ -18,16 +18,16 @@ export interface CacheProvider<Data = any> {
   keys(): IterableIterator<string>;
   has(key: Key): boolean;
   get(key: Key): Data | undefined;
-  set(key: Key, value: Data): void;
+  set(key: Key, value: DeepMaybeRef<Data>): void;
   delete(key: Key): void;
   clear(): void;
 }
 
 export type CacheState = {
-  data: Ref<any>;
-  error: Ref<any>;
-  isValidating: Ref<boolean>;
-  fetchedIn: Ref<Date>;
+  data: any | undefined;
+  error: any | undefined;
+  isValidating: boolean;
+  fetchedIn: Date;
 };
 
 export type SWRConfig<Data = any, Err = any> = {
