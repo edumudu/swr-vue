@@ -30,7 +30,7 @@ export const useSWR = <Data = any, Error = any>(
     onError,
   } = mergedConfig;
 
-  const { key, args: fetcherArgs } = toRefs(toReactive(computed(() => serializeKey(_key))));
+  const { key, args: fetcherArgs } = toRefs(toReactive(computed(() => serializeKey(unref(_key)))));
   const fallbackValue = fallbackData === undefined ? fallback?.[key.value] : fallbackData;
 
   const valueInCache = computed(() => cacheProvider.get(key.value));

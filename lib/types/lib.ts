@@ -1,4 +1,4 @@
-import { Ref } from 'vue';
+import type { DeepMaybeRef, MaybeRef } from '@/types/generics';
 
 export type KeyArguments =
   | string
@@ -9,7 +9,7 @@ export type KeyArguments =
   | false;
 
 export type Key = KeyArguments | (() => KeyArguments);
-export type SWRKey = Key;
+export type SWRKey = MaybeRef<Key>;
 export type SWRFetcher<Data> =
   | ((...args: any[]) => Promise<Data> | Data)
   | (() => Promise<Data> | Data);
