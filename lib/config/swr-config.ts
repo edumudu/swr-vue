@@ -10,4 +10,7 @@ export const defaultConfig: SWRConfig = {
   revalidateIfStale: true,
   focusThrottleInterval: 5000,
   dedupingInterval: 2000,
+  refreshInterval: 0,
+  refreshWhenHidden: false,
+  refreshWhenOffline: false,
 };

@@ -1,4 +1,4 @@
-import { Ref } from 'vue';
+import type { DeepMaybeRef, MaybeRef } from '@/types/generics';
 
 export type KeyArguments =
   | string
@@ -9,7 +9,7 @@ export type KeyArguments =
   | false;
 
 export type Key = KeyArguments | (() => KeyArguments);
-export type SWRKey = Key;
+export type SWRKey = MaybeRef<Key>;
 export type SWRFetcher<Data> =
   | ((...args: any[]) => Promise<Data> | Data)
   | (() => Promise<Data> | Data);
@@ -18,16 +18,16 @@ export interface CacheProvider<Data = any> {
   keys(): IterableIterator<string>;
   has(key: Key): boolean;
   get(key: Key): Data | undefined;
-  set(key: Key, value: Data): void;
+  set(key: Key, value: DeepMaybeRef<Data>): void;
   delete(key: Key): void;
   clear(): void;
 }
 
 export type CacheState = {
-  data: Ref<any>;
-  error: Ref<any>;
-  isValidating: Ref<boolean>;
-  fetchedIn: Ref<Date>;
+  data: any | undefined;
+  error: any | undefined;
+  isValidating: boolean;
+  fetchedIn: Date;
 };
 
 export type SWRConfig<Data = any, Err = any> = {
@@ -60,6 +60,25 @@ export type SWRConfig<Data = any, Err = any> = {
    * @default 2000
    */
   dedupingInterval: number;
+
+  /**
+   * Disabled by default
+   * polling interval in milliseconds
+   * @default 0
+   */
+  refreshInterval: number;
+
+  /**
+   * polling when the window is invisible (if `refreshInterval` is enabled)
+   * @default false
+   */
+  refreshWhenHidden: boolean;
+
+  /**
+   * polling when the browser is offline (determined by `navigator.onLine`)
+   * @default false
+   */
+  refreshWhenOffline: boolean;
 
   /**
    * initial data to be returned

@@ -1,10 +1,52 @@
-import { computed, ref, readonly, watch, toRefs, toRef } from 'vue';
-import { toReactive, useEventListener } from '@vueuse/core';
+import { computed, readonly, watch, toRefs, unref, customRef } from 'vue';
+import { toReactive, useEventListener, useIntervalFn } from '@vueuse/core';
 
-import type { OmitFirstArrayIndex, SWRComposableConfig, SWRFetcher, SWRKey } from '@/types';
+import type {
+  MaybeRef,
+  OmitFirstArrayIndex,
+  SWRComposableConfig,
+  SWRFetcher,
+  SWRKey,
+} from '@/types';
 import { serializeKey } from '@/utils';
 import { mergeConfig } from '@/utils/merge-config';
 import { useSWRConfig } from '@/composables/global-swr-config';
+
+type UseCachedRefOptions = {
+  cache: any;
+  key: MaybeRef<string>;
+  stateKey: string;
+};
+
+const useCachedRef = <T>(initialValue: T, { cache, stateKey, key }: UseCachedRefOptions) => {
+  let value = initialValue;
+  const cacheStete = computed(() => cache.get(unref(key)));
+
+  return customRef((track, trigger) => {
+    watch(
+      () => cacheStete.value?.[stateKey],
+      (newValue) => {
+        value = newValue;
+        trigger();
+      },
+    );
+
+    return {
+      get() {
+        track();
+        return value;
+      },
+      set(newValue) {
+        value = newValue;
+        cache.set(unref(key), {
+          ...cacheStete.value,
+          [stateKey]: value,
+        });
+        trigger();
+      },
+    };
+  });
+};
 
 export const useSWR = <Data = any, Error = any>(
   _key: SWRKey,
@@ -23,20 +65,25 @@ export const useSWR = <Data = any, Error = any>(
     fallback,
     fallbackData,
     focusThrottleInterval,
+    refreshInterval,
+    refreshWhenHidden,
+    refreshWhenOffline,
     onSuccess,
     onError,
   } = mergedConfig;
 
-  const { key, args: fetcherArgs } = toRefs(toReactive(computed(() => serializeKey(_key))));
+  const { key, args: fetcherArgs } = toRefs(toReactive(computed(() => serializeKey(unref(_key)))));
   const fallbackValue = fallbackData === undefined ? fallback?.[key.value] : fallbackData;
 
   const valueInCache = computed(() => cacheProvider.get(key.value));
   const hasCachedValue = computed(() => !!valueInCache.value);
 
-  const error = valueInCache.value ? toRef(valueInCache.value, 'error') : ref<Error>();
-  const isValidating = valueInCache.value ? toRef(valueInCache.value, 'isValidating') : ref(true);
-  const data = valueInCache.value ? toRef(valueInCache.value, 'data') : ref(fallbackValue);
-  const fetchedIn = valueInCache.value ? toRef(valueInCache.value, 'fetchedIn') : ref(new Date());
+  /* eslint-disable max-len, prettier/prettier */
+  const data = useCachedRef<Data>(valueInCache.value?.data ?? fallbackValue, { cache: cacheProvider, stateKey: 'data', key });
+  const error = useCachedRef<Error>(valueInCache.value?.error, { cache: cacheProvider, stateKey: 'error', key });
+  const isValidating = useCachedRef(valueInCache.value?.isValidating ?? true, { cache: cacheProvider, stateKey: 'isValidating', key });
+  const fetchedIn = useCachedRef(valueInCache.value?.fetchedIn ?? new Date(), { cache: cacheProvider, stateKey: 'fetchedIn', key });
+  /* eslint-enable */
 
   const fetchData = async () => {
     const timestampToDedupExpire = (fetchedIn.value?.getTime() || 0) + dedupingInterval;
@@ -64,6 +111,15 @@ export const useSWR = <Data = any, Error = any>(
     }
   };
 
+  const onRefresh = () => {
+    const shouldSkipRefreshOffline = !refreshWhenOffline && !navigator.onLine;
+    const shouldSkipRefreshHidden = !refreshWhenHidden && document.visibilityState === 'hidden';
+
+    if (shouldSkipRefreshOffline || shouldSkipRefreshHidden) return;
+
+    fetchData();
+  };
+
   const onWindowFocus = () => {
     const fetchedInTimestamp = fetchedIn.value?.getTime() || 0;
 
@@ -80,6 +136,10 @@ export const useSWR = <Data = any, Error = any>(
     useEventListener(window, 'online', () => fetchData());
   }
 
+  if (refreshInterval) {
+    useIntervalFn(onRefresh, refreshInterval);
+  }
+
   watch(
     key,
     (newKey, oldKey) => {
@@ -93,8 +153,8 @@ export const useSWR = <Data = any, Error = any>(
   if (!hasCachedValue.value) {
     cacheProvider.set(key.value, {
       error,
-      isValidating,
       data,
+      isValidating,
       fetchedIn,
     });
   }
