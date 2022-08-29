@@ -29,6 +29,11 @@ const dispatchEvent = (eventName: string, target: Element | Window | Document) =
   target.dispatchEvent(event);
 };
 
+const setTimeoutPromise = (ms: number, resolveTo: unknown) =>
+  new Promise((resolve) => {
+    setTimeout(() => resolve(resolveTo), ms);
+  });
+
 describe('useSWR', () => {
   beforeEach(() => {
     vi.useRealTimers();
@@ -299,6 +304,7 @@ describe('useSWR', () => {
   });
 
   it('should change local data variable value when mutate is called with `optimistcData`', async () => {
+    vi.useFakeTimers();
     setDataToCache(defaultKey, { data: 'cachedData' });
 
     const { mutate, data } = useInjectedSetup(
@@ -308,7 +314,7 @@ describe('useSWR', () => {
 
     expect(data.value).toEqual('cachedData');
 
-    mutate(() => 'newValue', { optimisticData: 'optimistcData' });
+    mutate(() => setTimeoutPromise(1000, 'newValue'), { optimisticData: 'optimistcData' });
     await nextTick();
     expect(data.value).toEqual('optimistcData');
   });

@@ -19,28 +19,18 @@ type UseCachedRefOptions = {
 };
 
 const useCachedRef = <T>(initialValue: T, { cache, stateKey, key }: UseCachedRefOptions) => {
-  let value = initialValue;
   const cacheStete = computed(() => cache.get(unref(key)));
 
   return customRef((track, trigger) => {
-    watch(
-      () => cacheStete.value?.[stateKey],
-      (newValue) => {
-        value = newValue;
-        trigger();
-      },
-    );
-
     return {
       get() {
         track();
-        return value;
+        return cacheStete.value?.[stateKey] ?? initialValue;
       },
       set(newValue) {
-        value = newValue;
         cache.set(unref(key), {
           ...cacheStete.value,
-          [stateKey]: value,
+          [stateKey]: newValue,
         });
         trigger();
       },
@@ -152,10 +142,10 @@ export const useSWR = <Data = any, Error = any>(
 
   if (!hasCachedValue.value) {
     cacheProvider.set(key.value, {
-      error,
-      data,
-      isValidating,
-      fetchedIn,
+      error: error.value,
+      data: data.value,
+      isValidating: isValidating.value,
+      fetchedIn: fetchedIn.value,
     });
   }
 
