@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { nextTick, reactive, ref, UnwrapRef } from 'vue';
+import { nextTick, reactive, ref, UnwrapRef, watch } from 'vue';
 import flushPromises from 'flush-promises';
 
 import { CacheProvider, CacheState, Key, SWRComposableConfig } from '@/types';
@@ -94,6 +94,38 @@ describe('useSWR - Stale', () => {
     key.value = keyTwo;
     await nextTick();
     expect(data.value).toBe('cachedData');
+  });
+
+  it('should change variables values when key change in an rastreable way', async () => {
+    const key = ref('');
+    const keyTwo = 'key-two';
+
+    const newData = 'test';
+    const newErrr = new Error();
+
+    setDataToCache(keyTwo, { data: newData, error: newErrr });
+
+    const { data, error } = useInjectedSetup(
+      () => configureGlobalSWR({ cacheProvider }),
+      () => useSWR(key, () => new Promise(() => {}), defaultOptions),
+    );
+
+    const onDataChange = vi.fn();
+    const onErrorChange = vi.fn();
+
+    expect(cacheProvider.has(key.value)).toBeTruthy();
+    expect(data.value).toBeUndefined();
+
+    watch(data, onDataChange);
+    watch(error, onErrorChange);
+
+    key.value = keyTwo;
+
+    await nextTick();
+    expect(onDataChange).toHaveBeenCalledTimes(1);
+    expect(onDataChange).toHaveBeenCalledWith(newData, undefined, expect.anything());
+    expect(onErrorChange).toHaveBeenCalledTimes(1);
+    expect(onErrorChange).toHaveBeenCalledWith(newErrr, undefined, expect.anything());
   });
 
   it.each([

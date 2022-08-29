@@ -3,7 +3,7 @@ import { isRef, nextTick, reactive, ref, UnwrapRef } from 'vue';
 import flushPromises from 'flush-promises';
 
 import { withSetup } from '@/utils/with-setup';
-import { CacheProvider, CacheState, Key, SWRComposableConfig, SWRFetcher } from '@/types';
+import { CacheProvider, CacheState, Key, SWRComposableConfig } from '@/types';
 import { useInjectedSetup } from '@/utils/test';
 
 import { useSWR } from '.';
@@ -59,49 +59,6 @@ describe('useSWR', () => {
     expect(isValidating.value).toBeTruthy();
   });
 
-  it.each([
-    [() => 'returnedData'],
-    [() => 1],
-    [() => ({ id: 2 })],
-    [() => Promise.resolve('returnedData')],
-  ])(
-    'should set data returned from fetcher to data variable',
-    async (fetcher: SWRFetcher<unknown>) => {
-      const { data, isValidating } = useInjectedSetup(
-        () => configureGlobalSWR({ cacheProvider }),
-        () => useSWR(defaultKey, fetcher, defaultOptions),
-      );
-
-      expect(data.value).toEqual(undefined);
-
-      await flushPromises();
-      expect(data.value).toEqual(await fetcher());
-      expect(isValidating.value).toBeFalsy();
-    },
-  );
-
-  it.each([
-    // eslint-disable-next-line prefer-promise-reject-errors
-    [() => Promise.reject('Error in fetcher 1'), 'Error in fetcher 1'],
-    [() => Promise.reject(new Error('Error in fetcher 2')), new Error('Error in fetcher 2')],
-    [
-      () => {
-        throw new Error('Error in fetcher 3');
-      },
-      new Error('Error in fetcher 3'),
-    ],
-  ])('should set error when throw error in fetcher', async (fetcher, expectedError) => {
-    const { data, isValidating, error } = useInjectedSetup(
-      () => configureGlobalSWR({ cacheProvider }),
-      () => useSWR(defaultKey, fetcher, defaultOptions),
-    );
-
-    await flushPromises();
-    expect(data.value).toEqual(undefined);
-    expect(error.value).toEqual(expectedError);
-    expect(isValidating.value).toBeFalsy();
-  });
-
   it('should set the same error in different `useSWR` calls with the same key', async () => {
     const [error1, error2] = useInjectedSetup(
       () => configureGlobalSWR({ cacheProvider }),
@@ -115,9 +72,9 @@ describe('useSWR', () => {
       },
     );
 
-    await nextTick();
-    expect(error1.value).toBeInstanceOf(Error);
+    await flushPromises();
     expect(error2.value).toBeInstanceOf(Error);
+    expect(error1.value).toBeInstanceOf(Error);
     expect(error1.value).toBe(error2.value);
   });
 
@@ -308,25 +265,6 @@ describe('useSWR', () => {
   });
 
   it.each([
-    '/user/me',
-    'https://google.com',
-    ['/api/user', 4, 'authKey'],
-    () => '/user/me',
-    () => 'https://google.com',
-    () => ['/api/user', 4, 'authKey'],
-  ])('should call fetcher function passing keys as arguments: %#', async (key) => {
-    const fetcher = vi.fn();
-    let expectedArgs = typeof key === 'function' ? key() : key;
-
-    expectedArgs = Array.isArray(expectedArgs) ? expectedArgs : [expectedArgs];
-
-    withSetup(() => useSWR(key, fetcher, defaultOptions));
-
-    expect(fetcher).toHaveBeenCalled();
-    expect(fetcher).toHaveBeenCalledWith(...expectedArgs);
-  });
-
-  it.each([
     undefined,
     false as const,
     null,
@@ -344,102 +282,6 @@ describe('useSWR', () => {
     withSetup(() => useSWR(key, fetcher, defaultOptions));
 
     expect(fetcher).not.toHaveBeenCalled();
-  });
-
-  it('should disable deduping if `dedupingInterval` if equal 0', () => {
-    const fetcher = vi.fn();
-    const key = 'key-1';
-
-    const options: SWRComposableConfig = {
-      ...defaultOptions,
-      dedupingInterval: 0,
-    };
-
-    useInjectedSetup(
-      () => configureGlobalSWR({ cacheProvider }),
-      () => {
-        useSWR(key, fetcher, options);
-        useSWR(key, fetcher, options);
-        useSWR(key, fetcher, options);
-        useSWR(key, fetcher, options);
-      },
-    );
-
-    expect(fetcher).toBeCalledTimes(4);
-  });
-
-  it('should call the fetcher once if composables are called close of each other ', () => {
-    const fetcher = vi.fn();
-    const interval = 2000;
-    const key = 'key-1';
-
-    const options: SWRComposableConfig = {
-      ...defaultOptions,
-      dedupingInterval: interval,
-    };
-
-    useInjectedSetup(
-      () => configureGlobalSWR({ cacheProvider }),
-      () => {
-        useSWR(key, fetcher, options);
-        useSWR(key, fetcher, options);
-        useSWR(key, fetcher, options);
-        useSWR(key, fetcher, options);
-      },
-    );
-
-    expect(fetcher).toBeCalledTimes(1);
-  });
-
-  it('should return the same value when called inside deduping interval', async () => {
-    const interval = 2000;
-    const key = 'key-13434erdre';
-
-    vi.useFakeTimers();
-
-    const options: SWRComposableConfig = {
-      ...defaultOptions,
-      dedupingInterval: interval,
-    };
-
-    const result = useInjectedSetup(
-      () => configureGlobalSWR({ cacheProvider }),
-      () => {
-        const { data: data1 } = useSWR(key, () => 'result1', options);
-        const { data: data2 } = useSWR(key, () => 'result2', options);
-        const { data: data3 } = useSWR(key, () => 'result3', options);
-        const { data: data4 } = useSWR(key, () => 'result4', options);
-
-        return [data1, data2, data3, data4];
-      },
-    );
-
-    await flushPromises();
-    expect(result.map((data) => data.value)).toEqual(['result1', 'result1', 'result1', 'result1']);
-  });
-
-  it('should call the fetcher function again when outside deduping interval', async () => {
-    const interval = 2000;
-    const key = 'key-1';
-    const fetcher = vi.fn();
-
-    vi.useFakeTimers();
-    setDataToCache(key, { data: 'cachedData', fetchedIn: new Date() });
-
-    useInjectedSetup(
-      () => configureGlobalSWR({ cacheProvider }),
-      () => {
-        vi.advanceTimersByTime(interval + 2);
-
-        useSWR(key, fetcher, {
-          ...defaultOptions,
-          dedupingInterval: interval,
-        });
-      },
-    );
-
-    await flushPromises();
-    expect(fetcher).toHaveBeenCalledTimes(1);
   });
 
   it('should change local data variable value when mutate resolves', async () => {
@@ -467,6 +309,7 @@ describe('useSWR', () => {
     expect(data.value).toEqual('cachedData');
 
     mutate(() => 'newValue', { optimisticData: 'optimistcData' });
+    await nextTick();
     expect(data.value).toEqual('optimistcData');
   });
 
