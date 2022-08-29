@@ -15,6 +15,8 @@ export default defineConfig({
   },
 
   build: {
+    minify: false,
+
     lib: {
       entry: resolve(__dirname, 'lib/index.ts'),
       name: 'swr-vue',

@@ -27,7 +27,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc --noEmit && vite build",
+    "build": "vite build && vue-tsc --noEmit",
     "prepare": "husky install",
     "generate:release": "semantic-release",
     "preview": "vite preview",
