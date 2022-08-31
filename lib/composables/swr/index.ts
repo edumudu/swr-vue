@@ -21,7 +21,7 @@ type UseCachedRefOptions = {
 const useCachedRef = <T>(initialValue: T, { cache, stateKey, key }: UseCachedRefOptions) => {
   const cacheStete = computed(() => cache.get(unref(key)));
 
-  return customRef((track, trigger) => {
+  return customRef<T>((track, trigger) => {
     return {
       get() {
         track();
