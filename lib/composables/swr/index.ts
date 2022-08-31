@@ -77,8 +77,10 @@ export const useSWR = <Data = any, Error = any>(
 
   const fetchData = async () => {
     const timestampToDedupExpire = (fetchedIn.value?.getTime() || 0) + dedupingInterval;
+    const hasExpired = timestampToDedupExpire > Date.now();
 
-    if (hasCachedValue.value && timestampToDedupExpire > Date.now()) return;
+    if (hasCachedValue.value && (hasExpired || (isValidating.value && dedupingInterval !== 0)))
+      return;
 
     isValidating.value = true;
 
