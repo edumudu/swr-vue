@@ -44,6 +44,36 @@ describe('useSWR - Deduping', () => {
     expect(fetcher).toBeCalledTimes(1);
   });
 
+  it('should dedup also when already has cache', async () => {
+    const interval = 2000;
+    const key = ref('key-1');
+    const fetcher = vi.fn();
+
+    vi.useFakeTimers();
+    setDataToMockedCache(key.value, { data: 'cachedData', fetchedIn: new Date(Date.now() - 4000) });
+
+    const options: SWRComposableConfig = {
+      ...defaultOptions,
+      dedupingInterval: interval,
+    };
+
+    useInjectedSetup(
+      () => configureGlobalSWR({ cacheProvider }),
+      () => {
+        useSWR(key, fetcher, options);
+        useSWR(key, fetcher, options);
+        useSWR(key, fetcher, options);
+        useSWR(key, fetcher, options);
+      },
+    );
+
+    expect(fetcher).toHaveBeenCalledTimes(1);
+
+    key.value = 'key-2';
+    await nextTick();
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
   it('should return the same value when called inside deduping interval', async () => {
     const interval = 2000;
     const key = 'key-13434erdre';
