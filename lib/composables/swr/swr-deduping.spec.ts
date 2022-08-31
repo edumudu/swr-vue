@@ -1,26 +1,26 @@
-import { describe, expect, it, vi } from 'vitest';
-import { reactive, ref, UnwrapRef } from 'vue';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { ref, nextTick } from 'vue';
 import flushPromises from 'flush-promises';
 
-import { CacheProvider, CacheState, Key, SWRComposableConfig } from '@/types';
-import { useInjectedSetup } from '@/utils/test';
+import { SWRComposableConfig } from '@/types';
+import { useInjectedSetup, mockedCache, setDataToMockedCache } from '@/utils/test';
 
 import { useSWR } from '.';
 import { configureGlobalSWR } from '../global-swr-config';
 
-const cacheProvider = reactive<CacheProvider>(new Map());
+const cacheProvider = mockedCache;
 const defaultOptions: SWRComposableConfig = { dedupingInterval: 0 };
 
-const setDataToCache = (key: Key, data: UnwrapRef<Partial<CacheState>>) => {
-  cacheProvider.set(key, {
-    error: ref(data.error),
-    data: ref(data.data),
-    isValidating: ref(data.isValidating || false),
-    fetchedIn: ref(data.fetchedIn || new Date()),
-  });
-};
+describe('useSWR - Deduping', () => {
+  beforeEach(() => {
+    vi.useRealTimers();
+    vi.resetAllMocks();
+    cacheProvider.clear();
 
-describe('SWR - Deduping', () => {
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
+    vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
+  });
+
   it('should call the fetcher once if composables are called close of each other', () => {
     const fetcher = vi.fn();
     const interval = 2000;
@@ -77,7 +77,7 @@ describe('SWR - Deduping', () => {
     const fetcher = vi.fn();
 
     vi.useFakeTimers();
-    setDataToCache(key, { data: 'cachedData', fetchedIn: new Date() });
+    setDataToMockedCache(key, { data: 'cachedData', fetchedIn: new Date() });
 
     useInjectedSetup(
       () => configureGlobalSWR({ cacheProvider }),
@@ -95,7 +95,7 @@ describe('SWR - Deduping', () => {
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
 
-  it('should disable deduping if `dedupingInterval` if equal 0', () => {
+  it('should disable deduping if `dedupingInterval` equals 0', () => {
     const fetcher = vi.fn();
     const key = 'key-1';
 

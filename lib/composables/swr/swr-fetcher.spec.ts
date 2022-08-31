@@ -1,19 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { nextTick, reactive } from 'vue';
+import { nextTick } from 'vue';
 import flushPromises from 'flush-promises';
 
-import { CacheProvider, SWRComposableConfig, SWRFetcher } from '@/types';
-import { useInjectedSetup } from '@/utils/test';
+import { SWRComposableConfig, SWRFetcher } from '@/types';
+import { useInjectedSetup, mockedCache } from '@/utils/test';
 import { withSetup } from '@/utils/with-setup';
 
 import { useSWR } from '.';
 import { configureGlobalSWR } from '../global-swr-config';
 
-const cacheProvider = reactive<CacheProvider>(new Map());
+const cacheProvider = mockedCache;
 const defaultKey = 'defaultKey';
 const defaultOptions: SWRComposableConfig = { dedupingInterval: 0 };
 
-describe('useSWR', () => {
+describe('useSWR - Fetcher', () => {
   beforeEach(() => {
     vi.useRealTimers();
     vi.resetAllMocks();

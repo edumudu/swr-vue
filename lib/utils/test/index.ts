@@ -1,6 +1,8 @@
 // eslint-disable-next-line eslint-comments/disable-enable-pair
 /* eslint-disable vue/one-component-per-file */
-import { createApp, defineComponent, h } from 'vue';
+import { createApp, defineComponent, h, reactive, UnwrapRef } from 'vue';
+
+import type { CacheProvider, CacheState, Key } from '@/types';
 
 // Thanks https://github.com/vueuse/vueuse/blob/main/packages/.test/mount.ts
 
@@ -64,3 +66,14 @@ export function useInjectedSetup<V>(providerSetup: () => void, setup: () => V) {
   // @ts-ignore
   return setupResult;
 }
+
+export const mockedCache = reactive<CacheProvider>(new Map());
+
+export const setDataToMockedCache = (key: Key, data: UnwrapRef<Partial<CacheState>>) => {
+  mockedCache.set(key, {
+    error: data.error,
+    data: data.data,
+    isValidating: data.isValidating || false,
+    fetchedIn: data.fetchedIn || new Date(),
+  });
+};

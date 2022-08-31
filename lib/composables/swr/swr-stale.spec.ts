@@ -1,26 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { nextTick, reactive, ref, UnwrapRef, watch } from 'vue';
+import { nextTick, ref, watch } from 'vue';
 import flushPromises from 'flush-promises';
 
-import { CacheProvider, CacheState, Key, SWRComposableConfig } from '@/types';
-import { useInjectedSetup } from '@/utils/test';
+import { SWRComposableConfig } from '@/types';
+import { useInjectedSetup, mockedCache, setDataToMockedCache } from '@/utils/test';
 
 import { useSWR } from '.';
 import { configureGlobalSWR } from '../global-swr-config';
 
-const cacheProvider = reactive<CacheProvider>(new Map());
+const cacheProvider = mockedCache;
 const defaultKey = 'defaultKey';
 const defaultFetcher = vi.fn((key: string) => key);
 const defaultOptions: SWRComposableConfig = { dedupingInterval: 0 };
-
-const setDataToCache = (key: Key, data: UnwrapRef<Partial<CacheState>>) => {
-  cacheProvider.set(key, {
-    error: ref(data.error),
-    data: ref(data.data),
-    isValidating: ref(data.isValidating || false),
-    fetchedIn: ref(data.fetchedIn || new Date()),
-  });
-};
 
 const setTimeoutPromise = (ms: number, resolveTo: unknown) =>
   new Promise((resolve) => {
@@ -39,7 +30,7 @@ describe('useSWR - Stale', () => {
 
   it('should return cached value before fullfill fetcher', async () => {
     vi.useFakeTimers();
-    setDataToCache(defaultKey, { data: 'cachedData' });
+    setDataToMockedCache(defaultKey, { data: 'cachedData' });
 
     const fetcher = vi.fn(() => setTimeoutPromise(1000, 'FetcherResult'));
 
@@ -58,8 +49,8 @@ describe('useSWR - Stale', () => {
     const keyTwo = 'key-two';
 
     vi.useFakeTimers();
-    setDataToCache(key.value, { data: 'cachedData' });
-    setDataToCache(keyTwo, { data: 'cachedDataKeyTwo' });
+    setDataToMockedCache(key.value, { data: 'cachedData' });
+    setDataToMockedCache(keyTwo, { data: 'cachedDataKeyTwo' });
 
     const fetcher = vi.fn(() => setTimeoutPromise(1000, 'FetcherResult'));
 
@@ -80,7 +71,7 @@ describe('useSWR - Stale', () => {
     const keyTwo = 'key-two';
 
     vi.useFakeTimers();
-    setDataToCache(keyTwo, { data: 'cachedData' });
+    setDataToMockedCache(keyTwo, { data: 'cachedData' });
 
     const fetcher = vi.fn(() => setTimeoutPromise(1000, 'FetcherResult'));
 
@@ -103,7 +94,7 @@ describe('useSWR - Stale', () => {
     const newData = 'test';
     const newErrr = new Error();
 
-    setDataToCache(keyTwo, { data: newData, error: newErrr });
+    setDataToMockedCache(keyTwo, { data: newData, error: newErrr });
 
     const { data, error } = useInjectedSetup(
       () => configureGlobalSWR({ cacheProvider }),
@@ -159,7 +150,7 @@ describe('useSWR - Stale', () => {
     const fallbackData = 'fallback';
     const cachedData = 'cached value';
 
-    setDataToCache(defaultKey, { data: cachedData });
+    setDataToMockedCache(defaultKey, { data: cachedData });
 
     const { data } = useInjectedSetup(
       () => configureGlobalSWR({ cacheProvider, fallbackData }),
@@ -202,7 +193,7 @@ describe('useSWR - Stale', () => {
     const fallback = { [defaultKey]: 'fallback' };
     const cachedValue = 'cached value';
 
-    setDataToCache(defaultKey, { data: cachedValue });
+    setDataToMockedCache(defaultKey, { data: cachedValue });
 
     const { data } = useInjectedSetup(
       () => configureGlobalSWR({ cacheProvider, fallback }),
