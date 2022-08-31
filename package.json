@@ -1,6 +1,6 @@
 {
   "name": "swr-vue",
-  "version": "1.7.1",
+  "version": "1.7.2",
   "author": "Eduardo Wesley <eduardomudutiu@gmail.com>",
   "description": "Vue composables for Data fetching",
   "license": "MIT",
