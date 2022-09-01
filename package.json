@@ -32,9 +32,9 @@
     "generate:release": "semantic-release",
     "preview": "vite preview",
     "lint:js": "eslint . --ext js,ts,jsx,tsx,vue --ignore-path .gitignore",
-    "test:unit": "vitest run",
-    "test:unit:watch": "vitest watch",
-    "test:unit:coverage": "vitest run --coverage",
+    "test": "vitest run",
+    "test:watch": "vitest watch",
+    "test:coverage": "vitest run --coverage",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:serve": "vitepress serve docs"
