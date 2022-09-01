@@ -27,12 +27,19 @@ const setTimeoutPromise = (ms: number, resolveTo: unknown) =>
 
 describe('useSWR', () => {
   beforeEach(() => {
-    vi.useRealTimers();
     vi.resetAllMocks();
     cacheProvider.clear();
 
     vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
     vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
+  });
+
+  beforeAll(() => {
+    vi.useFakeTimers();
+  });
+
+  afterAll(() => {
+    vi.useRealTimers();
   });
 
   it('should return a ref to data, error and isValidating', () => {
@@ -75,8 +82,6 @@ describe('useSWR', () => {
   });
 
   it('should return cached value first then revalidate', async () => {
-    vi.useFakeTimers();
-
     setDataToMockedCache(defaultKey, {
       data: 'cachedData',
       fetchedIn: new Date(),
@@ -118,7 +123,6 @@ describe('useSWR', () => {
   });
 
   it('should revalidate on focus just once inside focusThrottleInterval time span', async () => {
-    vi.useFakeTimers();
     setDataToMockedCache(defaultKey, { data: 'cachedData' });
 
     const focusThrottleInterval = 4000;
@@ -295,7 +299,6 @@ describe('useSWR', () => {
   });
 
   it('should change local data variable value when mutate is called with `optimistcData`', async () => {
-    vi.useFakeTimers();
     setDataToMockedCache(defaultKey, { data: 'cachedData' });
 
     const { mutate, data } = useInjectedSetup(
@@ -412,8 +415,6 @@ describe('useSWR', () => {
   it('should not refresh if refreshInterval = 0', async () => {
     const fetcher = vi.fn(defaultFetcher);
 
-    vi.useFakeTimers();
-
     useInjectedSetup(
       () => configureGlobalSWR({ cacheProvider }),
       () => useSWR(defaultKey, fetcher, { ...defaultOptions, refreshInterval: 0 }),
@@ -429,8 +430,6 @@ describe('useSWR', () => {
   it('should refresh in refreshInterval time span', async () => {
     const fetcher = vi.fn(defaultFetcher);
     const refreshInterval = 2000;
-
-    vi.useFakeTimers();
 
     useInjectedSetup(
       () => configureGlobalSWR({ cacheProvider }),
@@ -454,8 +453,6 @@ describe('useSWR', () => {
     const fetcher = vi.fn(defaultFetcher);
     const refreshInterval = 2000;
 
-    vi.useFakeTimers();
-
     useInjectedSetup(
       () => configureGlobalSWR({ cacheProvider }),
       () =>
@@ -477,8 +474,6 @@ describe('useSWR', () => {
   it('should refresh when offline and refreshWhenOffline = true', async () => {
     const fetcher = vi.fn(defaultFetcher);
     const refreshInterval = 2000;
-
-    vi.useFakeTimers();
 
     useInjectedSetup(
       () => configureGlobalSWR({ cacheProvider }),
@@ -502,8 +497,6 @@ describe('useSWR', () => {
     const fetcher = vi.fn(defaultFetcher);
     const refreshInterval = 2000;
 
-    vi.useFakeTimers();
-
     useInjectedSetup(
       () => configureGlobalSWR({ cacheProvider }),
       () =>
@@ -525,8 +518,6 @@ describe('useSWR', () => {
   it('should refresh when window is hidden and refreshWhenHidden = true', async () => {
     const fetcher = vi.fn(defaultFetcher);
     const refreshInterval = 2000;
-
-    vi.useFakeTimers();
 
     useInjectedSetup(
       () => configureGlobalSWR({ cacheProvider }),

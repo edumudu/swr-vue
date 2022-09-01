@@ -20,7 +20,6 @@ const dispatchEvent = (eventName: string, target: Element | Window | Document) =
 
 describe('useSWR - Revalidate', () => {
   beforeEach(() => {
-    vi.useRealTimers();
     vi.resetAllMocks();
     cacheProvider.clear();
 
@@ -28,9 +27,15 @@ describe('useSWR - Revalidate', () => {
     vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
   });
 
-  it('should return cached value first then revalidate', async () => {
+  beforeAll(() => {
     vi.useFakeTimers();
+  });
 
+  afterAll(() => {
+    vi.useRealTimers();
+  });
+
+  it('should return cached value first then revalidate', async () => {
     setDataToMockedCache(defaultKey, {
       data: 'cachedData',
       fetchedIn: new Date(),
@@ -49,6 +54,7 @@ describe('useSWR - Revalidate', () => {
     );
 
     expect(swrData.value).toBe('cachedData');
+
     vi.advanceTimersByTime(1000);
     await flushPromises();
     expect(fetcher).toHaveBeenCalledTimes(1);
@@ -72,7 +78,6 @@ describe('useSWR - Revalidate', () => {
   });
 
   it('should revalidate on focus just once inside focusThrottleInterval time span', async () => {
-    vi.useFakeTimers();
     setDataToMockedCache(defaultKey, { data: 'cachedData' });
 
     const focusThrottleInterval = 4000;

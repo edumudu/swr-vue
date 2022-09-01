@@ -20,7 +20,6 @@ const setTimeoutPromise = (ms: number, resolveTo: unknown) =>
 
 describe('useSWR - Stale', () => {
   beforeEach(() => {
-    vi.useRealTimers();
     vi.resetAllMocks();
     cacheProvider.clear();
 
@@ -28,8 +27,15 @@ describe('useSWR - Stale', () => {
     vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
   });
 
-  it('should return cached value before fullfill fetcher', async () => {
+  beforeAll(() => {
     vi.useFakeTimers();
+  });
+
+  afterAll(() => {
+    vi.useRealTimers();
+  });
+
+  it('should return cached value before fullfill fetcher', async () => {
     setDataToMockedCache(defaultKey, { data: 'cachedData' });
 
     const fetcher = vi.fn(() => setTimeoutPromise(1000, 'FetcherResult'));
@@ -48,7 +54,6 @@ describe('useSWR - Stale', () => {
     const key = ref('key');
     const keyTwo = 'key-two';
 
-    vi.useFakeTimers();
     setDataToMockedCache(key.value, { data: 'cachedData' });
     setDataToMockedCache(keyTwo, { data: 'cachedDataKeyTwo' });
 
@@ -70,7 +75,6 @@ describe('useSWR - Stale', () => {
     const key = ref('key');
     const keyTwo = 'key-two';
 
-    vi.useFakeTimers();
     setDataToMockedCache(keyTwo, { data: 'cachedData' });
 
     const fetcher = vi.fn(() => setTimeoutPromise(1000, 'FetcherResult'));

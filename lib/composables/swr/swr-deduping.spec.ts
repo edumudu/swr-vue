@@ -1,6 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { ref, nextTick } from 'vue';
-import flushPromises from 'flush-promises';
 
 import { SWRComposableConfig } from '@/types';
 import { useInjectedSetup, mockedCache, setDataToMockedCache } from '@/utils/test';
@@ -13,12 +12,19 @@ const defaultOptions: SWRComposableConfig = { dedupingInterval: 0 };
 
 describe('useSWR - Deduping', () => {
   beforeEach(() => {
-    vi.useRealTimers();
     vi.resetAllMocks();
     cacheProvider.clear();
 
     vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
     vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
+  });
+
+  beforeAll(() => {
+    vi.useFakeTimers();
+  });
+
+  afterAll(() => {
+    vi.useRealTimers();
   });
 
   it('should call the fetcher once if composables are called close of each other', () => {
@@ -49,7 +55,6 @@ describe('useSWR - Deduping', () => {
     const key = ref('key-1');
     const fetcher = vi.fn();
 
-    vi.useFakeTimers();
     setDataToMockedCache(key.value, { data: 'cachedData', fetchedIn: new Date(Date.now() - 4000) });
 
     const options: SWRComposableConfig = {
@@ -78,8 +83,6 @@ describe('useSWR - Deduping', () => {
     const interval = 2000;
     const key = 'key-13434erdre';
 
-    vi.useFakeTimers();
-
     const options: SWRComposableConfig = {
       ...defaultOptions,
       dedupingInterval: interval,
@@ -97,7 +100,7 @@ describe('useSWR - Deduping', () => {
       },
     );
 
-    await flushPromises();
+    await nextTick();
     expect(result.map((data) => data.value)).toEqual(['result1', 'result1', 'result1', 'result1']);
   });
 
@@ -106,14 +109,12 @@ describe('useSWR - Deduping', () => {
     const key = 'key-1';
     const fetcher = vi.fn();
 
-    vi.useFakeTimers();
     setDataToMockedCache(key, { data: 'cachedData', fetchedIn: new Date() });
+    vi.advanceTimersByTime(interval);
 
     useInjectedSetup(
       () => configureGlobalSWR({ cacheProvider }),
       () => {
-        vi.advanceTimersByTime(interval + 2);
-
         useSWR(key, fetcher, {
           ...defaultOptions,
           dedupingInterval: interval,
@@ -121,7 +122,6 @@ describe('useSWR - Deduping', () => {
       },
     );
 
-    await flushPromises();
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
 
