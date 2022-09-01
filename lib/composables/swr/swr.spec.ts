@@ -4,7 +4,7 @@ import flushPromises from 'flush-promises';
 
 import { withSetup } from '@/utils/with-setup';
 import { SWRComposableConfig } from '@/types';
-import { useInjectedSetup, setDataToMockedCache, mockedCache } from '@/utils/test';
+import { useInjectedSetup, setDataToMockedCache, mockedCache, dispatchEvent } from '@/utils/test';
 
 import { useSWR } from '.';
 import { configureGlobalSWR } from '../global-swr-config';
@@ -13,12 +13,6 @@ const cacheProvider = mockedCache;
 const defaultKey = 'defaultKey';
 const defaultFetcher = vi.fn((key: string) => key);
 const defaultOptions: SWRComposableConfig = { dedupingInterval: 0 };
-
-const dispatchEvent = (eventName: string, target: Element | Window | Document) => {
-  const event = new Event(eventName, { bubbles: true });
-
-  target.dispatchEvent(event);
-};
 
 const setTimeoutPromise = (ms: number, resolveTo: unknown) =>
   new Promise((resolve) => {

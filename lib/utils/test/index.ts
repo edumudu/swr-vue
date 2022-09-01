@@ -77,3 +77,9 @@ export const setDataToMockedCache = (key: Key, data: UnwrapRef<Partial<CacheStat
     fetchedIn: data.fetchedIn || new Date(),
   });
 };
+
+export const dispatchEvent = (eventName: string, target: Element | Window | Document) => {
+  const event = new Event(eventName, { bubbles: true });
+
+  target.dispatchEvent(event);
+};
