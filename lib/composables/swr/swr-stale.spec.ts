@@ -1,4 +1,3 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { nextTick, ref, watch } from 'vue';
 import flushPromises from 'flush-promises';
 

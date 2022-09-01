@@ -1,4 +1,3 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { ref, nextTick } from 'vue';
 
 import { SWRComposableConfig } from '@/types';

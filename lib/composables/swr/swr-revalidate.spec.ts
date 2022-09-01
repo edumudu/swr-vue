@@ -1,4 +1,3 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import flushPromises from 'flush-promises';
 
 import { SWRComposableConfig } from '@/types';
