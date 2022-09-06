@@ -10,6 +10,7 @@ import type {
 } from '@/types';
 import { serializeKey } from '@/utils';
 import { mergeConfig } from '@/utils/merge-config';
+import { isClient } from '@/config';
 import { useSWRConfig } from '@/composables/global-swr-config';
 
 type UseCachedRefOptions = {
@@ -120,11 +121,11 @@ export const useSWR = <Data = any, Error = any>(
     fetchData();
   };
 
-  if (revalidateOnFocus && (revalidateIfStale || !data.value)) {
+  if (isClient && revalidateOnFocus && (revalidateIfStale || !data.value)) {
     useEventListener(window, 'focus', onWindowFocus);
   }
 
-  if (revalidateOnReconnect && (revalidateIfStale || !data.value)) {
+  if (isClient && revalidateOnReconnect && (revalidateIfStale || !data.value)) {
     useEventListener(window, 'online', () => fetchData());
   }
 
