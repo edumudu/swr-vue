@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 
 .eslintcache
+
+# test
+coverage

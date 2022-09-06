@@ -1,13 +1,16 @@
 // eslint-disable-next-line eslint-comments/disable-enable-pair
 /* eslint-disable vue/one-component-per-file */
-import { createApp, defineComponent, h } from 'vue';
+import { createApp, defineComponent, h, reactive, UnwrapRef, createSSRApp, Component } from 'vue';
+import { renderToString } from 'vue/server-renderer';
+
+import type { CacheProvider, CacheState, Key } from '@/types';
 
 // Thanks https://github.com/vueuse/vueuse/blob/main/packages/.test/mount.ts
 
 type InstanceType<V> = V extends { new (...arg: any[]): infer X } ? X : never;
 type VM<V> = InstanceType<V> & { unmount(): void };
 
-const mount = <V>(componentToMount: V) => {
+const mount = <V extends Component>(componentToMount: V) => {
   const el = document.createElement('div');
   const app = createApp(componentToMount);
 
@@ -17,6 +20,15 @@ const mount = <V>(componentToMount: V) => {
   component.unmount = unmount;
 
   return component;
+};
+
+const mountInServer = async <V extends Component>(componentToMount: V) => {
+  const app = createSSRApp(componentToMount);
+
+  return {
+    app,
+    renderString: await renderToString(app),
+  };
 };
 
 /**
@@ -64,3 +76,34 @@ export function useInjectedSetup<V>(providerSetup: () => void, setup: () => V) {
   // @ts-ignore
   return setupResult;
 }
+
+/**
+ * Function to test features in ssr.
+ * Meant to be used only in tests.
+ */
+export const useSetupInServer = <V>(setup: () => V) => {
+  const Comp = defineComponent({
+    name: 'TestWrapperComponent',
+    setup,
+    render: () => h('div', []),
+  });
+
+  return mountInServer(Comp);
+};
+
+export const mockedCache = reactive<CacheProvider>(new Map());
+
+export const setDataToMockedCache = (key: Key, data: UnwrapRef<Partial<CacheState>>) => {
+  mockedCache.set(key, {
+    error: data.error,
+    data: data.data,
+    isValidating: data.isValidating || false,
+    fetchedIn: data.fetchedIn || new Date(),
+  });
+};
+
+export const dispatchEvent = (eventName: string, target: Element | Window | Document) => {
+  const event = new Event(eventName, { bubbles: true });
+
+  target.dispatchEvent(event);
+};

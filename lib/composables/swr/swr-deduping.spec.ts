@@ -1,26 +1,31 @@
-import { describe, expect, it, vi } from 'vitest';
-import { reactive, ref, UnwrapRef } from 'vue';
-import flushPromises from 'flush-promises';
+import { ref, nextTick } from 'vue';
 
-import { CacheProvider, CacheState, Key, SWRComposableConfig } from '@/types';
-import { useInjectedSetup } from '@/utils/test';
+import { SWRComposableConfig } from '@/types';
+import { useInjectedSetup, mockedCache, setDataToMockedCache } from '@/utils/test';
 
 import { useSWR } from '.';
 import { configureGlobalSWR } from '../global-swr-config';
 
-const cacheProvider = reactive<CacheProvider>(new Map());
+const cacheProvider = mockedCache;
 const defaultOptions: SWRComposableConfig = { dedupingInterval: 0 };
 
-const setDataToCache = (key: Key, data: UnwrapRef<Partial<CacheState>>) => {
-  cacheProvider.set(key, {
-    error: ref(data.error),
-    data: ref(data.data),
-    isValidating: ref(data.isValidating || false),
-    fetchedIn: ref(data.fetchedIn || new Date()),
-  });
-};
+describe('useSWR - Deduping', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    cacheProvider.clear();
 
-describe('SWR - Deduping', () => {
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
+    vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
+  });
+
+  beforeAll(() => {
+    vi.useFakeTimers();
+  });
+
+  afterAll(() => {
+    vi.useRealTimers();
+  });
+
   it('should call the fetcher once if composables are called close of each other', () => {
     const fetcher = vi.fn();
     const interval = 2000;
@@ -44,11 +49,38 @@ describe('SWR - Deduping', () => {
     expect(fetcher).toBeCalledTimes(1);
   });
 
+  it('should dedup also when already has cache', async () => {
+    const interval = 2000;
+    const key = ref('key-1');
+    const fetcher = vi.fn();
+
+    setDataToMockedCache(key.value, { data: 'cachedData', fetchedIn: new Date(Date.now() - 4000) });
+
+    const options: SWRComposableConfig = {
+      ...defaultOptions,
+      dedupingInterval: interval,
+    };
+
+    useInjectedSetup(
+      () => configureGlobalSWR({ cacheProvider }),
+      () => {
+        useSWR(key, fetcher, options);
+        useSWR(key, fetcher, options);
+        useSWR(key, fetcher, options);
+        useSWR(key, fetcher, options);
+      },
+    );
+
+    expect(fetcher).toHaveBeenCalledTimes(1);
+
+    key.value = 'key-2';
+    await nextTick();
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
   it('should return the same value when called inside deduping interval', async () => {
     const interval = 2000;
     const key = 'key-13434erdre';
-
-    vi.useFakeTimers();
 
     const options: SWRComposableConfig = {
       ...defaultOptions,
@@ -67,7 +99,7 @@ describe('SWR - Deduping', () => {
       },
     );
 
-    await flushPromises();
+    await nextTick();
     expect(result.map((data) => data.value)).toEqual(['result1', 'result1', 'result1', 'result1']);
   });
 
@@ -76,14 +108,12 @@ describe('SWR - Deduping', () => {
     const key = 'key-1';
     const fetcher = vi.fn();
 
-    vi.useFakeTimers();
-    setDataToCache(key, { data: 'cachedData', fetchedIn: new Date() });
+    setDataToMockedCache(key, { data: 'cachedData', fetchedIn: new Date() });
+    vi.advanceTimersByTime(interval);
 
     useInjectedSetup(
       () => configureGlobalSWR({ cacheProvider }),
       () => {
-        vi.advanceTimersByTime(interval + 2);
-
         useSWR(key, fetcher, {
           ...defaultOptions,
           dedupingInterval: interval,
@@ -91,11 +121,10 @@ describe('SWR - Deduping', () => {
       },
     );
 
-    await flushPromises();
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
 
-  it('should disable deduping if `dedupingInterval` if equal 0', () => {
+  it('should disable deduping if `dedupingInterval` equals 0', () => {
     const fetcher = vi.fn();
     const key = 'key-1';
 

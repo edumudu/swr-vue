@@ -1,5 +1,5 @@
 import { provide, reactive, ref, UnwrapRef } from 'vue';
-import { Mock } from 'vitest';
+import type { Mock } from 'vitest';
 
 import { defaultConfig, globalConfigKey } from '@/config';
 import { AnyFunction, CacheState, Key, SWRConfig } from '@/types';

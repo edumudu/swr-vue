@@ -1,36 +1,18 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { reactive, ref, UnwrapRef } from 'vue';
 import flushPromises from 'flush-promises';
 
-import { CacheProvider, CacheState, Key, SWRComposableConfig } from '@/types';
-import { useInjectedSetup } from '@/utils/test';
+import { SWRComposableConfig } from '@/types';
+import { useInjectedSetup, mockedCache, setDataToMockedCache, dispatchEvent } from '@/utils/test';
 
 import { useSWR } from '.';
 import { configureGlobalSWR } from '../global-swr-config';
 
-const cacheProvider = reactive<CacheProvider>(new Map());
+const cacheProvider = mockedCache;
 const defaultKey = 'defaultKey';
 const defaultFetcher = vi.fn((key: string) => key);
 const defaultOptions: SWRComposableConfig = { dedupingInterval: 0 };
 
-const setDataToCache = (key: Key, data: UnwrapRef<Partial<CacheState>>) => {
-  cacheProvider.set(key, {
-    error: ref(data.error),
-    data: ref(data.data),
-    isValidating: ref(data.isValidating || false),
-    fetchedIn: ref(data.fetchedIn || new Date()),
-  });
-};
-
-const dispatchEvent = (eventName: string, target: Element | Window | Document) => {
-  const event = new Event(eventName, { bubbles: true });
-
-  target.dispatchEvent(event);
-};
-
-describe('useSWR', () => {
+describe('useSWR - Revalidate', () => {
   beforeEach(() => {
-    vi.useRealTimers();
     vi.resetAllMocks();
     cacheProvider.clear();
 
@@ -38,10 +20,16 @@ describe('useSWR', () => {
     vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
   });
 
-  it('should return cached value first then revalidate', async () => {
+  beforeAll(() => {
     vi.useFakeTimers();
+  });
 
-    setDataToCache(defaultKey, {
+  afterAll(() => {
+    vi.useRealTimers();
+  });
+
+  it('should return cached value first then revalidate', async () => {
+    setDataToMockedCache(defaultKey, {
       data: 'cachedData',
       fetchedIn: new Date(),
     });
@@ -59,6 +47,7 @@ describe('useSWR', () => {
     );
 
     expect(swrData.value).toBe('cachedData');
+
     vi.advanceTimersByTime(1000);
     await flushPromises();
     expect(fetcher).toHaveBeenCalledTimes(1);
@@ -66,7 +55,7 @@ describe('useSWR', () => {
   });
 
   it('should revalidate when focus page', async () => {
-    setDataToCache(defaultKey, { data: 'cachedData' });
+    setDataToMockedCache(defaultKey, { data: 'cachedData' });
 
     const fetcher = vi.fn().mockResolvedValue('FetcherResult');
     const { data } = useInjectedSetup(
@@ -82,8 +71,7 @@ describe('useSWR', () => {
   });
 
   it('should revalidate on focus just once inside focusThrottleInterval time span', async () => {
-    vi.useFakeTimers();
-    setDataToCache(defaultKey, { data: 'cachedData' });
+    setDataToMockedCache(defaultKey, { data: 'cachedData' });
 
     const focusThrottleInterval = 4000;
     const fetcher = vi.fn(defaultFetcher);
@@ -116,7 +104,7 @@ describe('useSWR', () => {
   });
 
   it('should not revalidate when focus if config revalidateOnFocus is false', async () => {
-    setDataToCache(defaultKey, { data: 'cachedData' });
+    setDataToMockedCache(defaultKey, { data: 'cachedData' });
 
     const fetcher = vi.fn().mockResolvedValue('FetcherResult');
     const { data } = useInjectedSetup(
@@ -137,7 +125,7 @@ describe('useSWR', () => {
   });
 
   it('should not revalidate if revalidateIfStale is false', async () => {
-    setDataToCache(defaultKey, { data: 'cachedData' });
+    setDataToMockedCache(defaultKey, { data: 'cachedData' });
 
     const fetcher = vi.fn().mockResolvedValue('FetcherResult');
     const { data } = useInjectedSetup(
@@ -155,7 +143,7 @@ describe('useSWR', () => {
   });
 
   it('should revalidate when back online', async () => {
-    setDataToCache(defaultKey, { data: 'cachedData' });
+    setDataToMockedCache(defaultKey, { data: 'cachedData' });
 
     const fetcher = vi.fn().mockResolvedValue('FetcherResult');
     const { data } = useInjectedSetup(
@@ -171,7 +159,7 @@ describe('useSWR', () => {
   });
 
   it('should not revalidate when back online if config revalidateOnReconnect is false', async () => {
-    setDataToCache(defaultKey, { data: 'cachedData' });
+    setDataToMockedCache(defaultKey, { data: 'cachedData' });
 
     const fetcher = vi.fn().mockResolvedValue('FetcherResult');
     const { data } = useInjectedSetup(

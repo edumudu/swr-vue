@@ -10,6 +10,7 @@ import type {
 } from '@/types';
 import { serializeKey } from '@/utils';
 import { mergeConfig } from '@/utils/merge-config';
+import { isClient } from '@/config';
 import { useSWRConfig } from '@/composables/global-swr-config';
 
 type UseCachedRefOptions = {
@@ -69,16 +70,18 @@ export const useSWR = <Data = any, Error = any>(
   const hasCachedValue = computed(() => !!valueInCache.value);
 
   /* eslint-disable max-len, prettier/prettier */
-  const data = useCachedRef<Data>(valueInCache.value?.data ?? fallbackValue, { cache: cacheProvider, stateKey: 'data', key });
-  const error = useCachedRef<Error>(valueInCache.value?.error, { cache: cacheProvider, stateKey: 'error', key });
+  const data = useCachedRef<Data | undefined>(valueInCache.value?.data ?? fallbackValue, { cache: cacheProvider, stateKey: 'data', key });
+  const error = useCachedRef<Error | undefined>(valueInCache.value?.error, { cache: cacheProvider, stateKey: 'error', key });
   const isValidating = useCachedRef(valueInCache.value?.isValidating ?? true, { cache: cacheProvider, stateKey: 'isValidating', key });
   const fetchedIn = useCachedRef(valueInCache.value?.fetchedIn ?? new Date(), { cache: cacheProvider, stateKey: 'fetchedIn', key });
   /* eslint-enable */
 
   const fetchData = async () => {
     const timestampToDedupExpire = (fetchedIn.value?.getTime() || 0) + dedupingInterval;
+    const hasExpired = timestampToDedupExpire > Date.now();
 
-    if (hasCachedValue.value && timestampToDedupExpire > Date.now()) return;
+    if (hasCachedValue.value && (hasExpired || (isValidating.value && dedupingInterval !== 0)))
+      return;
 
     isValidating.value = true;
 
@@ -118,11 +121,11 @@ export const useSWR = <Data = any, Error = any>(
     fetchData();
   };
 
-  if (revalidateOnFocus && (revalidateIfStale || !data.value)) {
+  if (isClient && revalidateOnFocus && (revalidateIfStale || !data.value)) {
     useEventListener(window, 'focus', onWindowFocus);
   }
 
-  if (revalidateOnReconnect && (revalidateIfStale || !data.value)) {
+  if (isClient && revalidateOnReconnect && (revalidateIfStale || !data.value)) {
     useEventListener(window, 'online', () => fetchData());
   }
 
