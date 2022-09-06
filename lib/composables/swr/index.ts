@@ -70,8 +70,8 @@ export const useSWR = <Data = any, Error = any>(
   const hasCachedValue = computed(() => !!valueInCache.value);
 
   /* eslint-disable max-len, prettier/prettier */
-  const data = useCachedRef<Data>(valueInCache.value?.data ?? fallbackValue, { cache: cacheProvider, stateKey: 'data', key });
-  const error = useCachedRef<Error>(valueInCache.value?.error, { cache: cacheProvider, stateKey: 'error', key });
+  const data = useCachedRef<Data | undefined>(valueInCache.value?.data ?? fallbackValue, { cache: cacheProvider, stateKey: 'data', key });
+  const error = useCachedRef<Error | undefined>(valueInCache.value?.error, { cache: cacheProvider, stateKey: 'error', key });
   const isValidating = useCachedRef(valueInCache.value?.isValidating ?? true, { cache: cacheProvider, stateKey: 'isValidating', key });
   const fetchedIn = useCachedRef(valueInCache.value?.fetchedIn ?? new Date(), { cache: cacheProvider, stateKey: 'fetchedIn', key });
   /* eslint-enable */
