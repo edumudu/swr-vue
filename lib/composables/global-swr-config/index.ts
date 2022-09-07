@@ -16,9 +16,9 @@ export const useSWRConfig = () => {
     computed(() => defaultConfig),
   );
 
-  const mutate = async <UpdateFn extends Promise<unknown> | AnyFunction>(
+  const mutate = async <U extends unknown | Promise<unknown> | AnyFunction>(
     key: string,
-    updateFnOrPromise: UpdateFn,
+    updateFnOrPromise: U,
     options: MutateOptions = {},
   ) => {
     const cachedValue = contextConfig.value.cacheProvider.get(key);
@@ -29,7 +29,7 @@ export const useSWRConfig = () => {
     const { data } = toRefs(cachedValue);
     const currentData = data.value;
 
-    const resultPromise =
+    const resultPromise: unknown | Promise<unknown> =
       typeof updateFnOrPromise === 'function'
         ? updateFnOrPromise(cachedValue.data)
         : updateFnOrPromise;
