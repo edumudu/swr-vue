@@ -34,6 +34,10 @@ export type ScopeState = {
   revalidateCache: Map<string, Array<() => void | Promise<void>>>; // callbacks to revalidate when key changes
 };
 
+export type RevalidatorOpts = {
+  dedup?: boolean;
+};
+
 export type SWRConfig<Data = any, Err = any> = {
   /**
    * stores the cached values

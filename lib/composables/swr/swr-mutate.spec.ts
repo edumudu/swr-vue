@@ -17,7 +17,7 @@ const setTimeoutPromise = (ms: number, resolveTo: unknown) =>
 
 const useSWRWrapped: typeof useSWR = (...params) => {
   return useInjectedSetup(
-    () => configureGlobalSWR({ cacheProvider, dedupingInterval: 0 }),
+    () => configureGlobalSWR({ cacheProvider }),
     () => useSWR(...params),
   );
 };
@@ -40,18 +40,23 @@ describe('useSWR - mutate', () => {
     vi.useRealTimers();
   });
 
-  it('should change local data variable value when mutate resolves', async () => {
+  it('should change local data variable value when binded mutate resolves', async () => {
     const { mutate, data } = useSWRWrapped(defaultKey, () => 'FetcherResult');
 
     await nextTick();
     expect(data.value).toEqual('FetcherResult');
 
     await mutate(() => 'newValue', { revalidate: false });
-    await nextTick();
     expect(data.value).toEqual('newValue');
+
+    await mutate(Promise.resolve('promised value'), { revalidate: false });
+    expect(data.value).toEqual('promised value');
+
+    await mutate(['raw value'], { revalidate: false });
+    expect(data.value).toEqual(['raw value']);
   });
 
-  it('should change local data variable value when mutate is called with `optimistcData`', async () => {
+  it('should change local data variable value when binded mutate is called with `optimistcData`', async () => {
     setDataToMockedCache(defaultKey, { data: 'cachedData' });
 
     const { mutate, data } = useInjectedSetup(
@@ -61,12 +66,15 @@ describe('useSWR - mutate', () => {
 
     expect(data.value).toEqual('cachedData');
 
-    mutate(() => setTimeoutPromise(1000, 'newValue'), { optimisticData: 'optimistcData' });
+    mutate(() => setTimeoutPromise(1000, 'newValue'), {
+      optimisticData: 'optimistcData',
+      revalidate: false,
+    });
     await nextTick();
     expect(data.value).toEqual('optimistcData');
   });
 
-  it('should update all hooks with the same key when call mutates', async () => {
+  it('should update all hooks with the same key when call binded mutate', async () => {
     setDataToMockedCache(defaultKey, { data: 'cachedData' });
 
     const { datas, mutate, differentData } = useInjectedSetup(
@@ -93,7 +101,8 @@ describe('useSWR - mutate', () => {
       'cachedData',
     ]);
 
-    await mutate(() => 'mutated value');
+    await mutate(() => 'mutated value', { revalidate: false });
+    await nextTick();
     expect(datas.map((data) => data.value)).toEqual([
       'mutated value',
       'mutated value',
@@ -112,7 +121,7 @@ describe('useSWR - mutate', () => {
       () => {
         const { mutate: localGlobalMutate } = useSWRConfig();
         // eslint-disable-next-line no-plusplus
-        const swrResult = useSWR(defaultKey, () => value++, { dedupingInterval: 0 });
+        const swrResult = useSWR(defaultKey, () => value++);
 
         return {
           globalMutate: localGlobalMutate,
@@ -133,5 +142,39 @@ describe('useSWR - mutate', () => {
 
     await nextTick();
     expect(data.value).toEqual(2);
+  });
+
+  it('should ignore dedup interval when call binded mutate', async () => {
+    const fetcher = defaultFetcher;
+    const { mutate } = useSWRWrapped(defaultKey, fetcher, { dedupingInterval: 50000000 });
+
+    await nextTick();
+    fetcher.mockReset();
+
+    await mutate();
+    expect(fetcher).toHaveBeenCalledTimes(1);
+
+    await mutate();
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+
+  it('should revalidate when call binded mutate', async () => {
+    const fetcher = defaultFetcher;
+    const { mutate } = useSWRWrapped(defaultKey, fetcher, { dedupingInterval: 50000000 });
+
+    await nextTick();
+    fetcher.mockReset();
+
+    await mutate();
+    expect(fetcher).toHaveBeenCalledOnce();
+
+    await mutate(['new vakye']);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+
+    await mutate(() => 'new vakye');
+    expect(fetcher).toHaveBeenCalledTimes(3);
+
+    await mutate(Promise.resolve('promised value'));
+    expect(fetcher).toHaveBeenCalledTimes(4);
   });
 });

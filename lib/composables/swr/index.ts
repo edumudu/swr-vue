@@ -4,6 +4,7 @@ import { createUnrefFn, toReactive, useEventListener, useIntervalFn } from '@vue
 import type {
   MaybeRef,
   OmitFirstArrayIndex,
+  RevalidatorOpts,
   SWRComposableConfig,
   SWRConfig,
   SWRFetcher,
@@ -88,11 +89,16 @@ export const useSWR = <Data = any, Error = any>(
   const fetchedIn = useCachedRef(valueInCache.value?.fetchedIn ?? new Date(), { cache: cacheProvider, stateKey: 'fetchedIn', key });
   /* eslint-enable */
 
-  const fetchData = async () => {
+  const fetchData = async (opts: RevalidatorOpts = { dedup: true }) => {
     const timestampToDedupExpire = (fetchedIn.value?.getTime() || 0) + dedupingInterval;
     const hasNotExpired = timestampToDedupExpire > Date.now();
 
-    if (hasCachedValue.value && (hasNotExpired || (isValidating.value && dedupingInterval !== 0)))
+    // Dedup requets
+    if (
+      opts.dedup &&
+      hasCachedValue.value &&
+      (hasNotExpired || (isValidating.value && dedupingInterval !== 0))
+    )
       return;
 
     isValidating.value = true;
@@ -140,7 +146,8 @@ export const useSWR = <Data = any, Error = any>(
       return;
     }
 
-    await fetchData();
+    // Skip dedup when trigger by mutate
+    await fetchData({ dedup: false });
   };
 
   const onKeyChange = (newKey: string, oldKey?: string) => {

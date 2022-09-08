@@ -23,7 +23,6 @@
     "types": ["vite/client", "vitest/globals"],
     "declarationDir": "./dist/types",
     "declaration": true,
-    "declarationMap": true
   },
   "include": ["lib"]
 }
