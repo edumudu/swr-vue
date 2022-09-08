@@ -104,10 +104,7 @@ export const useSWR = <Data = any, Error = any>(
     isValidating.value = true;
 
     try {
-      const fetcherResponse = await fetcher.apply(
-        fetcher,
-        Array.isArray(fetcherArgs.value) ? fetcherArgs.value : [fetcherArgs.value],
-      );
+      const fetcherResponse = await fetcher.apply(fetcher, fetcherArgs.value);
 
       data.value = fetcherResponse;
       fetchedIn.value = new Date();

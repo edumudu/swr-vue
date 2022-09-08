@@ -20,6 +20,6 @@ export const serializeKey = createUnrefFn((key: Key) => {
 
   return {
     key: !isEmptyArray && !!sanitizedKey ? stableHash(sanitizedKey) : '',
-    args: sanitizedKey,
+    args: Array.isArray(sanitizedKey) ? sanitizedKey : [sanitizedKey],
   };
 });
