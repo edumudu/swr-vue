@@ -9,6 +9,7 @@ import { useScopeState } from '@/composables/scope-state';
 export type MutateOptions = {
   optimisticData?: unknown;
   rollbackOnError?: boolean;
+  revalidate?: boolean;
 };
 
 export const useSWRConfig = () => {
@@ -17,6 +18,10 @@ export const useSWRConfig = () => {
     computed(() => defaultConfig),
   );
 
+  const cacheProvider = computed(() => contextConfig.value.cacheProvider);
+
+  const { revalidateCache } = useScopeState(cacheProvider);
+
   const mutate = async <U extends unknown | Promise<unknown> | AnyFunction>(
     _key: Key,
     updateFnOrPromise?: U,
@@ -24,7 +29,7 @@ export const useSWRConfig = () => {
   ) => {
     const { key } = serializeKey(_key);
     const cachedValue = contextConfig.value.cacheProvider.get(key);
-    const { optimisticData, rollbackOnError } = options;
+    const { optimisticData, rollbackOnError, revalidate = true } = options;
 
     if (!cachedValue) return;
 
@@ -41,13 +46,21 @@ export const useSWRConfig = () => {
     }
 
     try {
-      data.value = await resultPromise;
+      data.value = isUndefined(resultPromise) ? data.value : await resultPromise;
     } catch (error) {
       if (rollbackOnError) {
         data.value = currentData;
       }
 
       throw error;
+    }
+
+    const revalidationCallbackcs = revalidateCache.value.get(key) || [];
+
+    if (revalidate && revalidationCallbackcs.length) {
+      const [firstRevalidateCallback] = revalidationCallbackcs;
+
+      await firstRevalidateCallback();
     }
 
     return data.value;

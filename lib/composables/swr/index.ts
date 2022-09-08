@@ -1,5 +1,5 @@
-import { computed, readonly, watch, toRefs, unref, customRef } from 'vue';
-import { toReactive, useEventListener, useIntervalFn } from '@vueuse/core';
+import { computed, readonly, watch, toRefs, unref, customRef, onUnmounted } from 'vue';
+import { createUnrefFn, toReactive, useEventListener, useIntervalFn } from '@vueuse/core';
 
 import type {
   MaybeRef,
@@ -8,10 +8,11 @@ import type {
   SWRFetcher,
   SWRKey,
 } from '@/types';
-import { serializeKey } from '@/utils';
+import { serializeKey, subscribeCallback } from '@/utils';
 import { mergeConfig } from '@/utils/merge-config';
 import { isClient } from '@/config';
 import { useSWRConfig } from '@/composables/global-swr-config';
+import { useScopeState } from '@/composables/scope-state';
 
 type UseCachedRefOptions = {
   cache: any;
@@ -45,6 +46,8 @@ export const useSWR = <Data = any, Error = any>(
   config: SWRComposableConfig = {},
 ) => {
   const { config: contextConfig, mutate } = useSWRConfig();
+  const { revalidateCache } = useScopeState(contextConfig.value.cacheProvider);
+
   const mergedConfig = mergeConfig(contextConfig.value, config);
 
   const {
@@ -104,6 +107,8 @@ export const useSWR = <Data = any, Error = any>(
     }
   };
 
+  let unsubRevalidateCb: ReturnType<typeof subscribeCallback> | undefined;
+
   const onRefresh = () => {
     const shouldSkipRefreshOffline = !refreshWhenOffline && !navigator.onLine;
     const shouldSkipRefreshHidden = !refreshWhenHidden && document.visibilityState === 'hidden';
@@ -121,6 +126,24 @@ export const useSWR = <Data = any, Error = any>(
     fetchData();
   };
 
+  const onRevalidate = async () => {
+    if (!key.value) {
+      return;
+    }
+
+    await fetchData();
+  };
+
+  const onKeyChange = (newKey: string, oldKey?: string) => {
+    if (!!newKey && newKey !== oldKey && (revalidateIfStale || !data.value)) {
+      fetchData();
+    }
+
+    unsubRevalidateCb?.();
+
+    subscribeCallback(newKey, onRevalidate, revalidateCache.value);
+  };
+
   if (isClient && revalidateOnFocus && (revalidateIfStale || !data.value)) {
     useEventListener(window, 'focus', onWindowFocus);
   }
@@ -133,15 +156,8 @@ export const useSWR = <Data = any, Error = any>(
     useIntervalFn(onRefresh, refreshInterval);
   }
 
-  watch(
-    key,
-    (newKey, oldKey) => {
-      if (!!newKey && newKey !== oldKey && (revalidateIfStale || !data.value)) {
-        fetchData();
-      }
-    },
-    { immediate: true },
-  );
+  watch(key, onKeyChange, { immediate: true });
+  onUnmounted(() => unsubRevalidateCb?.());
 
   if (!hasCachedValue.value) {
     cacheProvider.set(key.value, {
