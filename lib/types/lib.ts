@@ -10,9 +10,12 @@ export type KeyArguments =
 
 export type Key = KeyArguments | (() => KeyArguments);
 export type SWRKey = MaybeRef<Key>;
+
+export type FetcherResponse<Data = unknown> = Data | Promise<Data>;
+
 export type SWRFetcher<Data> =
-  | ((...args: any[]) => Promise<Data> | Data)
-  | (() => Promise<Data> | Data);
+  | ((...args: any[]) => FetcherResponse<Data>)
+  | (() => FetcherResponse<Data>);
 
 export interface CacheProvider<Data = any> {
   keys(): IterableIterator<string>;

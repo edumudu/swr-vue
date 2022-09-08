@@ -1,4 +1,4 @@
-import { isRef, nextTick, ref } from 'vue';
+import { isRef, ref } from 'vue';
 import flushPromises from 'flush-promises';
 
 import { withSetup } from '@/utils/with-setup';
@@ -12,11 +12,6 @@ const cacheProvider = mockedCache;
 const defaultKey = 'defaultKey';
 const defaultFetcher = vi.fn((key: string) => key);
 const defaultOptions: SWRComposableConfig = { dedupingInterval: 0 };
-
-const setTimeoutPromise = (ms: number, resolveTo: unknown) =>
-  new Promise((resolve) => {
-    setTimeout(() => resolve(resolveTo), ms);
-  });
 
 describe('useSWR', () => {
   beforeEach(() => {
