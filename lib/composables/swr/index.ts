@@ -5,10 +5,11 @@ import type {
   MaybeRef,
   OmitFirstArrayIndex,
   SWRComposableConfig,
+  SWRConfig,
   SWRFetcher,
   SWRKey,
 } from '@/types';
-import { serializeKey, subscribeCallback } from '@/utils';
+import { isUndefined, serializeKey, subscribeCallback } from '@/utils';
 import { mergeConfig } from '@/utils/merge-config';
 import { isClient } from '@/config';
 import { useSWRConfig } from '@/composables/global-swr-config';
@@ -40,6 +41,14 @@ const useCachedRef = <T>(initialValue: T, { cache, stateKey, key }: UseCachedRef
   });
 };
 
+const getFromFallback = createUnrefFn((key: string, fallback: SWRConfig['fallback']) => {
+  if (!fallback) return undefined;
+
+  const findedKey = Object.keys(fallback).find((_key) => serializeKey(_key).key === key);
+
+  return findedKey && fallback[findedKey];
+});
+
 export const useSWR = <Data = any, Error = any>(
   _key: SWRKey,
   fetcher: SWRFetcher<Data>,
@@ -66,8 +75,8 @@ export const useSWR = <Data = any, Error = any>(
     onError,
   } = mergedConfig;
 
-  const { key, args: fetcherArgs } = toRefs(toReactive(computed(() => serializeKey(unref(_key)))));
-  const fallbackValue = fallbackData === undefined ? fallback?.[key.value] : fallbackData;
+  const { key, args: fetcherArgs } = toRefs(toReactive(computed(() => serializeKey(_key))));
+  const fallbackValue = isUndefined(fallbackData) ? getFromFallback(key, fallback) : fallbackData;
 
   const valueInCache = computed(() => cacheProvider.get(key.value));
   const hasCachedValue = computed(() => !!valueInCache.value);
@@ -81,9 +90,9 @@ export const useSWR = <Data = any, Error = any>(
 
   const fetchData = async () => {
     const timestampToDedupExpire = (fetchedIn.value?.getTime() || 0) + dedupingInterval;
-    const hasExpired = timestampToDedupExpire > Date.now();
+    const hasNotExpired = timestampToDedupExpire > Date.now();
 
-    if (hasCachedValue.value && (hasExpired || (isValidating.value && dedupingInterval !== 0)))
+    if (hasCachedValue.value && (hasNotExpired || (isValidating.value && dedupingInterval !== 0)))
       return;
 
     isValidating.value = true;
@@ -173,6 +182,6 @@ export const useSWR = <Data = any, Error = any>(
     error: readonly(error),
     isValidating: readonly(isValidating),
     mutate: (...params: OmitFirstArrayIndex<Parameters<typeof mutate>>) =>
-      mutate(key.value, ...params),
+      mutate(unref(_key), ...params),
   };
 };

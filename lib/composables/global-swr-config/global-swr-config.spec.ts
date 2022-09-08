@@ -1,10 +1,15 @@
-import { provide, reactive, ref, UnwrapRef } from 'vue';
+import { provide, ref } from 'vue';
 import type { Mock } from 'vitest';
 
 import { defaultConfig, globalConfigKey } from '@/config';
-import { AnyFunction, CacheState, Key, SWRConfig } from '@/types';
-import { useInjectedSetup, useSetup } from '@/utils/test';
-import { MapAdapter } from '@/cache';
+import { AnyFunction, SWRConfig } from '@/types';
+import {
+  getDataFromMockedCache,
+  mockedCache,
+  setDataToMockedCache,
+  useInjectedSetup,
+  useSetup,
+} from '@/utils/test';
 
 import { useSWRConfig, configureGlobalSWR } from '.';
 
@@ -17,11 +22,11 @@ describe('useSWRConfig', () => {
     [{ revalidateIfStale: true, revalidateOnFocus: false }],
   ])('should get configs from global configuration: "%s"', (objToProvide) => {
     const { config } = useInjectedSetup(
-      () => provide(globalConfigKey, ref(objToProvide)),
+      () => configureGlobalSWR(objToProvide),
       () => useSWRConfig(),
     );
 
-    expect(config.value).toEqual(objToProvide);
+    expect(config.value).toContain(objToProvide);
   });
 
   it('should return default config if not have an provided one', () => {
@@ -53,7 +58,7 @@ describe('configureGlobalSWR', () => {
 
   it('should merge context config and the passed by argument', () => {
     const injectedConfig: Partial<SWRConfig> = Object.freeze({
-      ...globalConfigKey,
+      ...defaultConfig,
       revalidateIfStale: false,
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
@@ -74,7 +79,7 @@ describe('configureGlobalSWR', () => {
 });
 
 describe('mutate', () => {
-  const cacheProvider = reactive(new MapAdapter());
+  const cacheProvider = mockedCache;
   const defaultKey = 'Default key';
 
   const useSWRConfigWrapped = () =>
@@ -83,18 +88,9 @@ describe('mutate', () => {
       () => useSWRConfig(),
     );
 
-  const setDataToCache = (key: Key, data: UnwrapRef<Partial<CacheState>>) => {
-    cacheProvider.set(key, {
-      error: ref(data.error),
-      data: ref(data.data),
-      isValidation: ref(data.isValidating || false),
-      fetchedIn: ref(data.fetchedIn || new Date()),
-    });
-  };
-
   beforeEach(() => {
     cacheProvider.clear();
-    setDataToCache(defaultKey, { data: 'cached data' });
+    setDataToMockedCache(defaultKey, { data: 'cached data' });
   });
 
   it('should write in the cache the value resolved from promise passed to mutate', async () => {
@@ -102,17 +98,17 @@ describe('mutate', () => {
 
     await mutate(defaultKey, Promise.resolve('resolved value'));
 
-    expect(cacheProvider.get(defaultKey)?.data).toEqual('resolved value');
+    expect(getDataFromMockedCache(defaultKey)?.data).toEqual('resolved value');
   });
 
   it('should write in the cache the value returned from function passed to mutate', async () => {
     const { mutate } = useSWRConfigWrapped();
 
     await mutate(defaultKey, () => 'sync resolved value');
-    expect(cacheProvider.get(defaultKey)?.data).toEqual('sync resolved value');
+    expect(getDataFromMockedCache(defaultKey)?.data).toEqual('sync resolved value');
 
     await mutate(defaultKey, () => Promise.resolve('async resolved value'));
-    expect(cacheProvider.get(defaultKey)?.data).toEqual('async resolved value');
+    expect(getDataFromMockedCache(defaultKey)?.data).toEqual('async resolved value');
   });
 
   it.each([
@@ -125,7 +121,7 @@ describe('mutate', () => {
     (cachedData) => {
       const updateFn = vi.fn();
 
-      setDataToCache(defaultKey, { data: cachedData });
+      setDataToMockedCache(defaultKey, { data: cachedData });
 
       const { mutate } = useInjectedSetup(
         () => configureGlobalSWR({ cacheProvider }),
@@ -178,10 +174,10 @@ describe('mutate', () => {
       optimisticData: 'optimistic data',
     });
 
-    expect(cacheProvider.get(defaultKey)?.data).toEqual('optimistic data');
+    expect(getDataFromMockedCache(defaultKey)?.data).toEqual('optimistic data');
 
     await promise;
-    expect(cacheProvider.get(defaultKey)?.data).toEqual('resolved data');
+    expect(getDataFromMockedCache(defaultKey)?.data).toEqual('resolved data');
   });
 
   it('should write rollback data writed in cache whe using `opoptimisticData` and `rollbackOnError`', async () => {
@@ -193,7 +189,7 @@ describe('mutate', () => {
         rollbackOnError: true,
       });
     } catch (error) {
-      expect(cacheProvider.get(defaultKey)?.data).toEqual('cached data');
+      expect(getDataFromMockedCache(defaultKey)?.data).toEqual('cached data');
     }
 
     expect.assertions(1);

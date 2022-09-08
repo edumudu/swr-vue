@@ -1,13 +1,15 @@
-import { nextTick, ref, unref } from 'vue';
+import { nextTick, ref } from 'vue';
 
 import { SWRComposableConfig } from '@/types';
 import { useInjectedSetup, mockedCache } from '@/utils/test';
+import { serializeKey } from '@/utils';
 
 import { useSWR } from '.';
 import { configureGlobalSWR } from '../global-swr-config';
 
 const cacheProvider = mockedCache;
 const defaultKey = 'defaultKey';
+const { key: defaultKeySerialized } = serializeKey(defaultKey);
 
 describe('useSWR', () => {
   beforeEach(() => {
@@ -38,9 +40,13 @@ describe('useSWR', () => {
 
     await nextTick();
     expect(onSuccess).toHaveBeenCalledOnce();
-    expect(onSuccess).toHaveBeenCalledWith(fetcherResult, defaultKey, expect.anything());
+    expect(onSuccess).toHaveBeenCalledWith(fetcherResult, defaultKeySerialized, expect.anything());
     expect(globalOnSuccess).toHaveBeenCalledOnce();
-    expect(globalOnSuccess).toHaveBeenCalledWith(fetcherResult, defaultKey, expect.anything());
+    expect(globalOnSuccess).toHaveBeenCalledWith(
+      fetcherResult,
+      defaultKeySerialized,
+      expect.anything(),
+    );
   });
 
   it('should call local and global onError if fetcher throws', async () => {
@@ -55,9 +61,9 @@ describe('useSWR', () => {
 
     await nextTick();
     expect(onError).toHaveBeenCalledOnce();
-    expect(onError).toHaveBeenCalledWith(error, defaultKey, expect.anything());
+    expect(onError).toHaveBeenCalledWith(error, defaultKeySerialized, expect.anything());
     expect(globalOnError).toHaveBeenCalledOnce();
-    expect(globalOnError).toHaveBeenCalledWith(error, defaultKey, expect.anything());
+    expect(globalOnError).toHaveBeenCalledWith(error, defaultKeySerialized, expect.anything());
   });
 
   it('should call local and global onError with local and global configs merged', async () => {
@@ -117,6 +123,7 @@ describe('useSWR', () => {
     'should call local and global onSuccess with right key "%s" and data',
     async (keyStr) => {
       const key = keyStr === 'key-ref' ? ref(keyStr) : keyStr;
+      const { key: serializedKey } = serializeKey(key);
       const onSuccess = vi.fn();
       const globalOnSuccess = vi.fn();
       const resolvedData = 'resolved :)';
@@ -127,8 +134,8 @@ describe('useSWR', () => {
       );
 
       await nextTick();
-      expect(onSuccess).toHaveBeenCalledWith(resolvedData, unref(key), expect.anything());
-      expect(globalOnSuccess).toHaveBeenCalledWith(resolvedData, unref(key), expect.anything());
+      expect(onSuccess).toHaveBeenCalledWith(resolvedData, serializedKey, expect.anything());
+      expect(globalOnSuccess).toHaveBeenCalledWith(resolvedData, serializedKey, expect.anything());
     },
   );
 
@@ -136,6 +143,7 @@ describe('useSWR', () => {
     'should call local and global onError with right key "%s" and error',
     async (keyStr) => {
       const key = keyStr === 'key-ref' ? ref(keyStr) : keyStr;
+      const { key: serializedKey } = serializeKey(key);
       const onError = vi.fn();
       const globalOnError = vi.fn();
       const error = new Error('fetch failed :(');
@@ -146,8 +154,8 @@ describe('useSWR', () => {
       );
 
       await nextTick();
-      expect(onError).toHaveBeenCalledWith(error, unref(key), expect.anything());
-      expect(globalOnError).toHaveBeenCalledWith(error, unref(key), expect.anything());
+      expect(onError).toHaveBeenCalledWith(error, serializedKey, expect.anything());
+      expect(globalOnError).toHaveBeenCalledWith(error, serializedKey, expect.anything());
     },
   );
 });

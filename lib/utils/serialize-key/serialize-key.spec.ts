@@ -1,4 +1,6 @@
-import { hash } from '@/utils';
+import { ref } from 'vue';
+
+import { stableHash as hash } from '@/utils';
 
 import { serializeKey } from '.';
 
@@ -23,7 +25,7 @@ describe('serializeKey', () => {
     const sourceKey = () => 'return';
     const { key } = serializeKey(sourceKey);
 
-    expect(key).toBe('return');
+    expect(key).toBe('"return"');
   });
 
   it.each([
@@ -39,6 +41,26 @@ describe('serializeKey', () => {
     () => [],
   ])(
     'should return empty string if key resolves to a falsy value or empty array: "%s"',
+    (sourceKey) => {
+      const { key } = serializeKey(sourceKey);
+
+      expect(key).toBe('');
+    },
+  );
+
+  it.each([
+    ref(''),
+    ref(false as const),
+    ref(null),
+    ref(undefined),
+    ref([]),
+    ref(() => ''),
+    ref(() => false as const),
+    ref(() => null),
+    ref(() => undefined),
+    ref(() => []),
+  ])(
+    'should return empty string if ref key resolves to a falsy value or empty array',
     (sourceKey) => {
       const { key } = serializeKey(sourceKey);
 

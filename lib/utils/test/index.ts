@@ -5,6 +5,8 @@ import { renderToString } from 'vue/server-renderer';
 
 import type { CacheProvider, CacheState, Key } from '@/types';
 
+import { serializeKey } from '../serialize-key';
+
 // Thanks https://github.com/vueuse/vueuse/blob/main/packages/.test/mount.ts
 
 type InstanceType<V> = V extends { new (...arg: any[]): infer X } ? X : never;
@@ -94,12 +96,20 @@ export const useSetupInServer = <V>(setup: () => V) => {
 export const mockedCache = reactive<CacheProvider>(new Map());
 
 export const setDataToMockedCache = (key: Key, data: UnwrapRef<Partial<CacheState>>) => {
-  mockedCache.set(key, {
+  const { key: serializedKey } = serializeKey(key);
+
+  mockedCache.set(serializedKey, {
     error: data.error,
     data: data.data,
     isValidating: data.isValidating || false,
     fetchedIn: data.fetchedIn || new Date(),
   });
+};
+
+export const getDataFromMockedCache = (key: Key) => {
+  const { key: serializedKey } = serializeKey(key);
+
+  return mockedCache.get(serializedKey);
 };
 
 export const dispatchEvent = (eventName: string, target: Element | Window | Document) => {
