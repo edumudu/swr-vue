@@ -2,8 +2,9 @@ import { computed, inject, provide, unref, shallowReadonly, toRefs } from 'vue';
 import { MaybeRef } from '@vueuse/core';
 
 import { defaultConfig, globalConfigKey } from '@/config';
-import { AnyFunction, SWRConfig } from '@/types';
-import { mergeConfig } from '@/utils';
+import { AnyFunction, Key, SWRConfig } from '@/types';
+import { isUndefined, mergeConfig, serializeKey } from '@/utils';
+import { useScopeState } from '@/composables/scope-state';
 
 export type MutateOptions = {
   optimisticData?: unknown;
@@ -17,10 +18,11 @@ export const useSWRConfig = () => {
   );
 
   const mutate = async <U extends unknown | Promise<unknown> | AnyFunction>(
-    key: string,
-    updateFnOrPromise: U,
+    _key: Key,
+    updateFnOrPromise?: U,
     options: MutateOptions = {},
   ) => {
+    const { key } = serializeKey(_key);
     const cachedValue = contextConfig.value.cacheProvider.get(key);
     const { optimisticData, rollbackOnError } = options;
 
