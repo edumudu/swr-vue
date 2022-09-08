@@ -1,6 +1,5 @@
 import { nextTick } from 'vue';
 
-import { SWRComposableConfig } from '@/types';
 import { useInjectedSetup, setDataToMockedCache, mockedCache } from '@/utils/test';
 import { globalState } from '@/config';
 
@@ -10,7 +9,6 @@ import { configureGlobalSWR, useSWRConfig } from '../global-swr-config';
 const cacheProvider = mockedCache;
 const defaultKey = 'defaultKey';
 const defaultFetcher = vi.fn((key: string) => key);
-const defaultOptions: SWRComposableConfig = { dedupingInterval: 0 };
 
 const setTimeoutPromise = (ms: number, resolveTo: unknown) =>
   new Promise((resolve) => {
