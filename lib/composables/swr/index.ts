@@ -9,6 +9,8 @@ import {
 } from '@vueuse/core';
 
 import type {
+  CacheProvider,
+  CacheState,
   MaybeRef,
   OmitFirstArrayIndex,
   RevalidatorOpts,
@@ -22,30 +24,40 @@ import { mergeConfig } from '@/utils/merge-config';
 import { useSWRConfig } from '@/composables/global-swr-config';
 import { useScopeState } from '@/composables/scope-state';
 
-type UseCachedRefOptions = {
-  cache: any;
+type RefCachedOptions = {
+  cacheProvider: CacheProvider;
   key: MaybeRef<string>;
-  stateKey: string;
+  stateKey: keyof CacheState;
 };
 
-const useCachedRef = <T>(initialValue: T, { cache, stateKey, key }: UseCachedRefOptions) => {
-  const cacheStete = computed(() => cache.get(unref(key)));
-
-  return customRef<T>((track, trigger) => {
-    return {
-      get() {
-        track();
-        return cacheStete.value?.[stateKey] ?? initialValue;
-      },
-      set(newValue) {
-        cache.set(unref(key), {
-          ...cacheStete.value,
-          [stateKey]: newValue,
-        });
-        trigger();
-      },
-    };
+const setStateToCache = (key: string, cache: CacheProvider, state: Partial<CacheState>) => {
+  cache.set(key, {
+    data: undefined,
+    error: undefined,
+    fetchedIn: new Date(),
+    isValidating: false,
+    ...state,
   });
+};
+
+const refCached = <T>(initialValue: T, { cacheProvider, stateKey, key }: RefCachedOptions) => {
+  const cacheState = computed(() => cacheProvider.get(unref(key)));
+
+  return customRef<T>((track, trigger) => ({
+    get() {
+      track();
+      return cacheState.value?.[stateKey] ?? initialValue;
+    },
+    set(newValue) {
+      // This also will create a state to new keys
+      setStateToCache(unref(key), cacheProvider, {
+        ...cacheState.value,
+        [stateKey]: newValue,
+      });
+
+      trigger();
+    },
+  }));
 };
 
 const getFromFallback = createUnrefFn((key: string, fallback: SWRConfig['fallback']) => {
@@ -90,12 +102,10 @@ export const useSWR = <Data = any, Error = any>(
   const valueInCache = computed(() => cacheProvider.get(key.value));
   const hasCachedValue = computed(() => !!valueInCache.value);
 
-  /* eslint-disable max-len, prettier/prettier */
-  const data = useCachedRef<Data | undefined>(valueInCache.value?.data ?? fallbackValue, { cache: cacheProvider, stateKey: 'data', key });
-  const error = useCachedRef<Error | undefined>(valueInCache.value?.error, { cache: cacheProvider, stateKey: 'error', key });
-  const isValidating = useCachedRef(valueInCache.value?.isValidating ?? true, { cache: cacheProvider, stateKey: 'isValidating', key });
-  const fetchedIn = useCachedRef(valueInCache.value?.fetchedIn ?? new Date(), { cache: cacheProvider, stateKey: 'fetchedIn', key });
-  /* eslint-enable */
+  const data = refCached<Data | undefined>(fallbackValue, { cacheProvider, stateKey: 'data', key });
+  const error = refCached<Error | undefined>(undefined, { cacheProvider, stateKey: 'error', key });
+  const isValidating = refCached(true, { cacheProvider, stateKey: 'isValidating', key });
+  const fetchedIn = refCached(new Date(), { cacheProvider, stateKey: 'fetchedIn', key });
 
   const fetchData = async (opts: RevalidatorOpts = { dedup: true }) => {
     const timestampToDedupExpire = (fetchedIn.value?.getTime() || 0) + dedupingInterval;
@@ -183,7 +193,7 @@ export const useSWR = <Data = any, Error = any>(
   onUnmounted(() => unsubRevalidateCb?.());
 
   if (!hasCachedValue.value) {
-    cacheProvider.set(key.value, {
+    setStateToCache(key.value, cacheProvider, {
       error: error.value,
       data: data.value,
       isValidating: isValidating.value,
