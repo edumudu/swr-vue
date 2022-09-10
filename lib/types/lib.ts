@@ -17,7 +17,7 @@ export type SWRFetcher<Data> =
   | ((...args: any[]) => FetcherResponse<Data>)
   | (() => FetcherResponse<Data>);
 
-export interface CacheProvider<Data = any> {
+export interface CacheProvider<Data = CacheState> {
   keys(): IterableIterator<string>;
   has(key: Key): boolean;
   get(key: Key): Data | undefined;

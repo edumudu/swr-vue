@@ -1,5 +1,12 @@
 import { computed, readonly, watch, toRefs, unref, customRef, onUnmounted } from 'vue';
-import { createUnrefFn, toReactive, useEventListener, useIntervalFn } from '@vueuse/core';
+import {
+  createUnrefFn,
+  toReactive,
+  useIntervalFn,
+  useNetwork,
+  whenever,
+  useWindowFocus,
+} from '@vueuse/core';
 
 import type {
   MaybeRef,
@@ -12,7 +19,6 @@ import type {
 } from '@/types';
 import { isUndefined, serializeKey, subscribeCallback } from '@/utils';
 import { mergeConfig } from '@/utils/merge-config';
-import { isClient } from '@/config';
 import { useSWRConfig } from '@/composables/global-swr-config';
 import { useScopeState } from '@/composables/scope-state';
 
@@ -57,6 +63,8 @@ export const useSWR = <Data = any, Error = any>(
 ) => {
   const { config: contextConfig, mutate } = useSWRConfig();
   const { revalidateCache } = useScopeState(contextConfig.value.cacheProvider);
+  const { isOnline } = useNetwork();
+  const isWindowFocused = useWindowFocus();
 
   const mergedConfig = mergeConfig(contextConfig.value, config);
 
@@ -122,7 +130,7 @@ export const useSWR = <Data = any, Error = any>(
   let unsubRevalidateCb: ReturnType<typeof subscribeCallback> | undefined;
 
   const onRefresh = () => {
-    const shouldSkipRefreshOffline = !refreshWhenOffline && !navigator.onLine;
+    const shouldSkipRefreshOffline = !refreshWhenOffline && !isOnline.value;
     const shouldSkipRefreshHidden = !refreshWhenHidden && document.visibilityState === 'hidden';
 
     if (shouldSkipRefreshOffline || shouldSkipRefreshHidden) return;
@@ -157,17 +165,19 @@ export const useSWR = <Data = any, Error = any>(
     subscribeCallback(newKey, onRevalidate, revalidateCache.value);
   };
 
-  if (isClient && revalidateOnFocus && (revalidateIfStale || !data.value)) {
-    useEventListener(window, 'focus', onWindowFocus);
-  }
-
-  if (isClient && revalidateOnReconnect && (revalidateIfStale || !data.value)) {
-    useEventListener(window, 'online', () => fetchData());
-  }
-
   if (refreshInterval) {
     useIntervalFn(onRefresh, refreshInterval);
   }
+
+  whenever(
+    () => revalidateOnFocus && (revalidateIfStale || !data.value) && isWindowFocused.value,
+    () => onWindowFocus(),
+  );
+
+  whenever(
+    () => revalidateOnReconnect && (revalidateIfStale || !data.value) && isOnline.value,
+    () => fetchData(),
+  );
 
   watch(key, onKeyChange, { immediate: true });
   onUnmounted(() => unsubRevalidateCb?.());
