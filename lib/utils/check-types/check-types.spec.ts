@@ -1,5 +1,9 @@
 import { isFunction, isDate, isUndefined } from '.';
 
+beforeEach(() => {
+  vi.useRealTimers();
+});
+
 describe('isFunction', () => {
   it('should return true if value is a function', () => {
     expect(isFunction(() => ({}))).toBe(true);
@@ -16,7 +20,7 @@ describe('isFunction', () => {
 });
 
 describe('isDate', () => {
-  it('should return true if value is a function', () => {
+  it('should return true if value is a date', () => {
     expect(isDate(new Date())).toBe(true);
     expect(isDate(new Date('1970-01-01T00:00:00.000Z'))).toBe(true);
     expect(isDate('1970-01-01T00:00:00.000Z')).toBe(false);

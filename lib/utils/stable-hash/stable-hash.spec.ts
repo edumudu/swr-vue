@@ -7,6 +7,10 @@ import { ref } from 'vue';
 
 import { stableHash as hash } from '.';
 
+beforeEach(() => {
+  vi.useRealTimers();
+});
+
 describe('stableHash', () => {
   it('should hash arguments correctly', async () => {
     // Primitives
