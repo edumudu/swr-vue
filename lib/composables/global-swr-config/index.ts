@@ -28,17 +28,17 @@ export const useSWRConfig = () => {
     options: MutateOptions = {},
   ) => {
     const { key } = serializeKey(_key);
-    const cachedValue = contextConfig.value.cacheProvider.get(key);
+    const cacheState = contextConfig.value.cacheProvider.get(key);
     const { optimisticData, rollbackOnError, revalidate = true } = options;
 
-    if (!cachedValue) return;
+    if (!cacheState) return;
 
-    const { data } = toRefs(cachedValue);
-    const currentData = data.value;
+    const { data } = toRefs(cacheState);
+    const dataInCache = data.value;
 
     const resultPromise: unknown | Promise<unknown> =
       typeof updateFnOrPromise === 'function'
-        ? updateFnOrPromise(cachedValue.data)
+        ? updateFnOrPromise(cacheState.data)
         : updateFnOrPromise;
 
     if (optimisticData) {
@@ -49,7 +49,7 @@ export const useSWRConfig = () => {
       data.value = isUndefined(resultPromise) ? data.value : await resultPromise;
     } catch (error) {
       if (rollbackOnError) {
-        data.value = currentData;
+        data.value = dataInCache;
       }
 
       throw error;
