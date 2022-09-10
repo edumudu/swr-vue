@@ -19,19 +19,10 @@ const setTimeoutPromise = (ms: number, resolveTo: unknown) =>
 
 describe('useSWR - Stale', () => {
   beforeEach(() => {
-    vi.resetAllMocks();
     cacheProvider.clear();
 
     vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
     vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
-  });
-
-  beforeAll(() => {
-    vi.useFakeTimers();
-  });
-
-  afterAll(() => {
-    vi.useRealTimers();
   });
 
   it('should return cached value before fullfill fetcher', async () => {

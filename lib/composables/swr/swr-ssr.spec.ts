@@ -13,7 +13,6 @@ const defaultFetcher = vi.fn((key: string) => key);
 describe('useSWR - Cache', () => {
   beforeEach(() => {
     vi.useRealTimers();
-    vi.resetAllMocks();
   });
 
   it('should not throw when rendered in server with default options', async () => {

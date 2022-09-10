@@ -13,16 +13,7 @@ const useScopeStateWrapped = () =>
 
 describe('useSWR - mutate', () => {
   beforeEach(() => {
-    vi.resetAllMocks();
     cacheProvider.clear();
-  });
-
-  beforeAll(() => {
-    vi.useFakeTimers();
-  });
-
-  afterAll(() => {
-    vi.useRealTimers();
   });
 
   it('should init scope in case that the scope does not have values', async () => {

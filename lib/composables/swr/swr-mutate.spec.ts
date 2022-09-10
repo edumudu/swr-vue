@@ -24,20 +24,11 @@ const useSWRWrapped: typeof useSWR = (...params) => {
 
 describe('useSWR - mutate', () => {
   beforeEach(() => {
-    vi.resetAllMocks();
     cacheProvider.clear();
     globalState.delete(cacheProvider);
 
     vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
     vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
-  });
-
-  beforeAll(() => {
-    vi.useFakeTimers();
-  });
-
-  afterAll(() => {
-    vi.useRealTimers();
   });
 
   it('should change local data variable value when binded mutate resolves', async () => {

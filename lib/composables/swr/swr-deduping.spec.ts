@@ -11,19 +11,10 @@ const defaultOptions: SWRComposableConfig = { dedupingInterval: 0 };
 
 describe('useSWR - Deduping', () => {
   beforeEach(() => {
-    vi.resetAllMocks();
     cacheProvider.clear();
 
     vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
     vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
-  });
-
-  beforeAll(() => {
-    vi.useFakeTimers();
-  });
-
-  afterAll(() => {
-    vi.useRealTimers();
   });
 
   it('should call the fetcher once if composables are called close of each other', () => {
@@ -108,7 +99,7 @@ describe('useSWR - Deduping', () => {
     const key = 'key-1';
     const fetcher = vi.fn();
 
-    setDataToMockedCache(key, { data: 'cachedData', fetchedIn: new Date() });
+    setDataToMockedCache(key, { data: 'cachedData' });
     vi.advanceTimersByTime(interval);
 
     useInjectedSetup(

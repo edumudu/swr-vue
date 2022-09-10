@@ -13,19 +13,10 @@ const { key: defaultKeySerialized } = serializeKey(defaultKey);
 
 describe('useSWR', () => {
   beforeEach(() => {
-    vi.resetAllMocks();
     cacheProvider.clear();
 
     vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
     vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
-  });
-
-  beforeAll(() => {
-    vi.useFakeTimers();
-  });
-
-  afterAll(() => {
-    vi.useRealTimers();
   });
 
   it('should call local and global onSuccess if fetcher successes', async () => {

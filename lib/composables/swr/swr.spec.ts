@@ -15,19 +15,10 @@ const defaultOptions: SWRComposableConfig = { dedupingInterval: 0 };
 
 describe('useSWR', () => {
   beforeEach(() => {
-    vi.resetAllMocks();
     cacheProvider.clear();
 
     vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
     vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
-  });
-
-  beforeAll(() => {
-    vi.useFakeTimers();
-  });
-
-  afterAll(() => {
-    vi.useRealTimers();
   });
 
   it('should return a ref to data, error and isValidating', () => {
@@ -69,31 +60,6 @@ describe('useSWR', () => {
     expect(error1.value).toBe(error2.value);
   });
 
-  it('should return cached value first then revalidate', async () => {
-    setDataToMockedCache(defaultKey, {
-      data: 'cachedData',
-      fetchedIn: new Date(),
-    });
-
-    const fetcher = vi.fn(
-      () =>
-        new Promise((resolve) => {
-          setTimeout(() => resolve('FetcherResult'), 1000);
-        }),
-    );
-
-    const { data: swrData } = useInjectedSetup(
-      () => configureGlobalSWR({ cacheProvider }),
-      () => useSWR(defaultKey, fetcher, defaultOptions),
-    );
-
-    expect(swrData.value).toBe('cachedData');
-    vi.advanceTimersByTime(1000);
-    await flushPromises();
-    expect(fetcher).toHaveBeenCalledTimes(1);
-    expect(swrData.value).toBe('FetcherResult');
-  });
-
   it('should not revalidate when focus if config revalidateOnFocus is false', async () => {
     setDataToMockedCache(defaultKey, { data: 'cachedData' });
 
@@ -113,24 +79,6 @@ describe('useSWR', () => {
     await flushPromises();
     expect(fetcher).toBeCalledTimes(1);
     expect(data.value).toBe('FetcherResult');
-  });
-
-  it('should not revalidate if revalidateIfStale is false', async () => {
-    setDataToMockedCache(defaultKey, { data: 'cachedData' });
-
-    const fetcher = vi.fn().mockResolvedValue('FetcherResult');
-    const { data } = useInjectedSetup(
-      () => configureGlobalSWR({ cacheProvider }),
-      () =>
-        useSWR(defaultKey, fetcher, {
-          ...defaultOptions,
-          revalidateIfStale: false,
-        }),
-    );
-
-    await flushPromises();
-    expect(fetcher).toBeCalledTimes(0);
-    expect(data.value).toBe('cachedData');
   });
 
   it('should not revalidate when back online if config revalidateOnReconnect is false', async () => {
