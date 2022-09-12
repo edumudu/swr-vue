@@ -10,11 +10,14 @@ export type KeyArguments =
 
 export type Key = KeyArguments | (() => KeyArguments);
 export type SWRKey = MaybeRef<Key>;
-export type SWRFetcher<Data> =
-  | ((...args: any[]) => Promise<Data> | Data)
-  | (() => Promise<Data> | Data);
 
-export interface CacheProvider<Data = any> {
+export type FetcherResponse<Data = unknown> = Data | Promise<Data>;
+
+export type SWRFetcher<Data> =
+  | ((...args: any[]) => FetcherResponse<Data>)
+  | (() => FetcherResponse<Data>);
+
+export interface CacheProvider<Data = CacheState> {
   keys(): IterableIterator<string>;
   has(key: Key): boolean;
   get(key: Key): Data | undefined;
@@ -28,6 +31,14 @@ export type CacheState = {
   error: any | undefined;
   isValidating: boolean;
   fetchedIn: Date;
+};
+
+export type ScopeState = {
+  revalidateCache: Map<string, Array<() => void | Promise<void>>>; // callbacks to revalidate when key changes
+};
+
+export type RevalidatorOpts = {
+  dedup?: boolean;
 };
 
 export type SWRConfig<Data = any, Err = any> = {

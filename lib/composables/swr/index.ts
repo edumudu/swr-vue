@@ -1,43 +1,72 @@
-import { computed, readonly, watch, toRefs, unref, customRef } from 'vue';
-import { toReactive, useEventListener, useIntervalFn } from '@vueuse/core';
+import { computed, readonly, watch, toRefs, unref, customRef, onUnmounted } from 'vue';
+import {
+  createUnrefFn,
+  toReactive,
+  useIntervalFn,
+  useNetwork,
+  whenever,
+  useWindowFocus,
+} from '@vueuse/core';
 
 import type {
+  CacheProvider,
+  CacheState,
   MaybeRef,
   OmitFirstArrayIndex,
+  RevalidatorOpts,
   SWRComposableConfig,
+  SWRConfig,
   SWRFetcher,
   SWRKey,
 } from '@/types';
-import { serializeKey } from '@/utils';
+import { isUndefined, serializeKey, subscribeCallback } from '@/utils';
 import { mergeConfig } from '@/utils/merge-config';
-import { isClient } from '@/config';
 import { useSWRConfig } from '@/composables/global-swr-config';
+import { useScopeState } from '@/composables/scope-state';
 
-type UseCachedRefOptions = {
-  cache: any;
+type RefCachedOptions = {
+  cacheProvider: CacheProvider;
   key: MaybeRef<string>;
-  stateKey: string;
+  stateKey: keyof CacheState;
 };
 
-const useCachedRef = <T>(initialValue: T, { cache, stateKey, key }: UseCachedRefOptions) => {
-  const cacheStete = computed(() => cache.get(unref(key)));
-
-  return customRef<T>((track, trigger) => {
-    return {
-      get() {
-        track();
-        return cacheStete.value?.[stateKey] ?? initialValue;
-      },
-      set(newValue) {
-        cache.set(unref(key), {
-          ...cacheStete.value,
-          [stateKey]: newValue,
-        });
-        trigger();
-      },
-    };
+const setStateToCache = (key: string, cache: CacheProvider, state: Partial<CacheState>) => {
+  cache.set(key, {
+    data: undefined,
+    error: undefined,
+    fetchedIn: new Date(),
+    isValidating: false,
+    ...state,
   });
 };
+
+const refCached = <T>(initialValue: T, { cacheProvider, stateKey, key }: RefCachedOptions) => {
+  const cacheState = computed(() => cacheProvider.get(unref(key)));
+
+  return customRef<T>((track, trigger) => ({
+    get() {
+      track();
+      return cacheState.value?.[stateKey] ?? initialValue;
+    },
+    set(newValue) {
+      // This also will create a state to new keys
+      setStateToCache(unref(key), cacheProvider, {
+        ...cacheState.value,
+        [stateKey]: newValue,
+      });
+
+      trigger();
+    },
+  }));
+};
+
+const getFromFallback = createUnrefFn((key: string, fallback: SWRConfig['fallback']) => {
+  if (!fallback) return undefined;
+
+  const findedKey = Object.keys(fallback).find((_key) => serializeKey(_key).key === key);
+
+  return findedKey && fallback[findedKey];
+});
 
 export const useSWR = <Data = any, Error = any>(
   _key: SWRKey,
@@ -45,6 +74,10 @@ export const useSWR = <Data = any, Error = any>(
   config: SWRComposableConfig = {},
 ) => {
   const { config: contextConfig, mutate } = useSWRConfig();
+  const { revalidateCache } = useScopeState(contextConfig.value.cacheProvider);
+  const { isOnline } = useNetwork();
+  const isWindowFocused = useWindowFocus();
+
   const mergedConfig = mergeConfig(contextConfig.value, config);
 
   const {
@@ -63,33 +96,33 @@ export const useSWR = <Data = any, Error = any>(
     onError,
   } = mergedConfig;
 
-  const { key, args: fetcherArgs } = toRefs(toReactive(computed(() => serializeKey(unref(_key)))));
-  const fallbackValue = fallbackData === undefined ? fallback?.[key.value] : fallbackData;
+  const { key, args: fetcherArgs } = toRefs(toReactive(computed(() => serializeKey(_key))));
+  const fallbackValue = isUndefined(fallbackData) ? getFromFallback(key, fallback) : fallbackData;
 
   const valueInCache = computed(() => cacheProvider.get(key.value));
   const hasCachedValue = computed(() => !!valueInCache.value);
 
-  /* eslint-disable max-len, prettier/prettier */
-  const data = useCachedRef<Data | undefined>(valueInCache.value?.data ?? fallbackValue, { cache: cacheProvider, stateKey: 'data', key });
-  const error = useCachedRef<Error | undefined>(valueInCache.value?.error, { cache: cacheProvider, stateKey: 'error', key });
-  const isValidating = useCachedRef(valueInCache.value?.isValidating ?? true, { cache: cacheProvider, stateKey: 'isValidating', key });
-  const fetchedIn = useCachedRef(valueInCache.value?.fetchedIn ?? new Date(), { cache: cacheProvider, stateKey: 'fetchedIn', key });
-  /* eslint-enable */
+  const data = refCached<Data | undefined>(fallbackValue, { cacheProvider, stateKey: 'data', key });
+  const error = refCached<Error | undefined>(undefined, { cacheProvider, stateKey: 'error', key });
+  const isValidating = refCached(true, { cacheProvider, stateKey: 'isValidating', key });
+  const fetchedIn = refCached(new Date(), { cacheProvider, stateKey: 'fetchedIn', key });
 
-  const fetchData = async () => {
+  const fetchData = async (opts: RevalidatorOpts = { dedup: true }) => {
     const timestampToDedupExpire = (fetchedIn.value?.getTime() || 0) + dedupingInterval;
-    const hasExpired = timestampToDedupExpire > Date.now();
+    const hasNotExpired = timestampToDedupExpire > Date.now();
 
-    if (hasCachedValue.value && (hasExpired || (isValidating.value && dedupingInterval !== 0)))
+    // Dedup requets
+    if (
+      opts.dedup &&
+      hasCachedValue.value &&
+      (hasNotExpired || (isValidating.value && dedupingInterval !== 0))
+    )
       return;
 
     isValidating.value = true;
 
     try {
-      const fetcherResponse = await fetcher.apply(
-        fetcher,
-        Array.isArray(fetcherArgs.value) ? fetcherArgs.value : [fetcherArgs.value],
-      );
+      const fetcherResponse = await fetcher.apply(fetcher, fetcherArgs.value);
 
       data.value = fetcherResponse;
       fetchedIn.value = new Date();
@@ -104,8 +137,10 @@ export const useSWR = <Data = any, Error = any>(
     }
   };
 
+  let unsubRevalidateCb: ReturnType<typeof subscribeCallback> | undefined;
+
   const onRefresh = () => {
-    const shouldSkipRefreshOffline = !refreshWhenOffline && !navigator.onLine;
+    const shouldSkipRefreshOffline = !refreshWhenOffline && !isOnline.value;
     const shouldSkipRefreshHidden = !refreshWhenHidden && document.visibilityState === 'hidden';
 
     if (shouldSkipRefreshOffline || shouldSkipRefreshHidden) return;
@@ -121,30 +156,44 @@ export const useSWR = <Data = any, Error = any>(
     fetchData();
   };
 
-  if (isClient && revalidateOnFocus && (revalidateIfStale || !data.value)) {
-    useEventListener(window, 'focus', onWindowFocus);
-  }
+  const onRevalidate = async () => {
+    if (!key.value) {
+      return;
+    }
 
-  if (isClient && revalidateOnReconnect && (revalidateIfStale || !data.value)) {
-    useEventListener(window, 'online', () => fetchData());
-  }
+    // Skip dedup when trigger by mutate
+    await fetchData({ dedup: false });
+  };
+
+  const onKeyChange = (newKey: string, oldKey?: string) => {
+    if (!!newKey && newKey !== oldKey && (revalidateIfStale || !data.value)) {
+      fetchData();
+    }
+
+    unsubRevalidateCb?.();
+
+    subscribeCallback(newKey, onRevalidate, revalidateCache.value);
+  };
 
   if (refreshInterval) {
     useIntervalFn(onRefresh, refreshInterval);
   }
 
-  watch(
-    key,
-    (newKey, oldKey) => {
-      if (!!newKey && newKey !== oldKey && (revalidateIfStale || !data.value)) {
-        fetchData();
-      }
-    },
-    { immediate: true },
+  whenever(
+    () => revalidateOnFocus && (revalidateIfStale || !data.value) && isWindowFocused.value,
+    () => onWindowFocus(),
   );
 
+  whenever(
+    () => revalidateOnReconnect && (revalidateIfStale || !data.value) && isOnline.value,
+    () => fetchData(),
+  );
+
+  watch(key, onKeyChange, { immediate: true });
+  onUnmounted(() => unsubRevalidateCb?.());
+
   if (!hasCachedValue.value) {
-    cacheProvider.set(key.value, {
+    setStateToCache(key.value, cacheProvider, {
       error: error.value,
       data: data.value,
       isValidating: isValidating.value,
@@ -157,6 +206,6 @@ export const useSWR = <Data = any, Error = any>(
     error: readonly(error),
     isValidating: readonly(isValidating),
     mutate: (...params: OmitFirstArrayIndex<Parameters<typeof mutate>>) =>
-      mutate(key.value, ...params),
+      mutate(unref(_key), ...params),
   };
 };

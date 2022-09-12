@@ -1,9 +1,11 @@
+import { createUnrefFn } from '@vueuse/core';
+
 import type { Key, KeyArguments } from '@/types';
 
 import { isFunction } from '../check-types';
-import { hash } from '../hash';
+import { stableHash } from '../stable-hash';
 
-export const serializeKey = (key: Key) => {
+export const serializeKey = createUnrefFn((key: Key) => {
   let sanitizedKey: KeyArguments = key;
 
   if (isFunction(sanitizedKey)) {
@@ -17,7 +19,7 @@ export const serializeKey = (key: Key) => {
   const isEmptyArray = Array.isArray(sanitizedKey) && sanitizedKey.length === 0;
 
   return {
-    key: !isEmptyArray && !!sanitizedKey ? hash(sanitizedKey) : '',
-    args: sanitizedKey,
+    key: !isEmptyArray && !!sanitizedKey ? stableHash(sanitizedKey) : '',
+    args: Array.isArray(sanitizedKey) ? sanitizedKey : [sanitizedKey],
   };
-};
+});

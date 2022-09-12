@@ -17,6 +17,8 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["lib/*"],
+      // https://github.com/microsoft/TypeScript/issues/29808#issuecomment-540292885
+      "@vueuse/shared": ["node_modules/@vueuse/shared/"]
     },
     "types": ["vite/client", "vitest/globals"],
     "declarationDir": "./dist/types",

@@ -29,3 +29,6 @@ jobs:
 
       - name: Build lib
         run: pnpm run build
+
+      - name: Check Types
+        run: pnpm run test:types

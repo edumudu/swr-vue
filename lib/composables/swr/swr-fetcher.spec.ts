@@ -15,7 +15,6 @@ const defaultOptions: SWRComposableConfig = { dedupingInterval: 0 };
 describe('useSWR - Fetcher', () => {
   beforeEach(() => {
     vi.useRealTimers();
-    vi.resetAllMocks();
     cacheProvider.clear();
 
     vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);

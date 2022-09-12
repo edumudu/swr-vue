@@ -1,4 +1,4 @@
-import { isRef, nextTick, ref } from 'vue';
+import { isRef, ref } from 'vue';
 import flushPromises from 'flush-promises';
 
 import { withSetup } from '@/utils/with-setup';
@@ -13,26 +13,12 @@ const defaultKey = 'defaultKey';
 const defaultFetcher = vi.fn((key: string) => key);
 const defaultOptions: SWRComposableConfig = { dedupingInterval: 0 };
 
-const setTimeoutPromise = (ms: number, resolveTo: unknown) =>
-  new Promise((resolve) => {
-    setTimeout(() => resolve(resolveTo), ms);
-  });
-
 describe('useSWR', () => {
   beforeEach(() => {
-    vi.resetAllMocks();
     cacheProvider.clear();
 
     vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
     vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
-  });
-
-  beforeAll(() => {
-    vi.useFakeTimers();
-  });
-
-  afterAll(() => {
-    vi.useRealTimers();
   });
 
   it('should return a ref to data, error and isValidating', () => {
@@ -74,80 +60,6 @@ describe('useSWR', () => {
     expect(error1.value).toBe(error2.value);
   });
 
-  it('should return cached value first then revalidate', async () => {
-    setDataToMockedCache(defaultKey, {
-      data: 'cachedData',
-      fetchedIn: new Date(),
-    });
-
-    const fetcher = vi.fn(
-      () =>
-        new Promise((resolve) => {
-          setTimeout(() => resolve('FetcherResult'), 1000);
-        }),
-    );
-
-    const { data: swrData } = useInjectedSetup(
-      () => configureGlobalSWR({ cacheProvider }),
-      () => useSWR(defaultKey, fetcher, defaultOptions),
-    );
-
-    expect(swrData.value).toBe('cachedData');
-    vi.advanceTimersByTime(1000);
-    await flushPromises();
-    expect(fetcher).toHaveBeenCalledTimes(1);
-    expect(swrData.value).toBe('FetcherResult');
-  });
-
-  it('should revalidate when focus page', async () => {
-    setDataToMockedCache(defaultKey, { data: 'cachedData' });
-
-    const fetcher = vi.fn().mockResolvedValue('FetcherResult');
-    const { data } = useInjectedSetup(
-      () => configureGlobalSWR({ cacheProvider, focusThrottleInterval: 0 }),
-      () => useSWR(defaultKey, fetcher, defaultOptions),
-    );
-
-    dispatchEvent('focus', document);
-
-    await flushPromises();
-    expect(fetcher).toBeCalledTimes(2);
-    expect(data.value).toBe('FetcherResult');
-  });
-
-  it('should revalidate on focus just once inside focusThrottleInterval time span', async () => {
-    setDataToMockedCache(defaultKey, { data: 'cachedData' });
-
-    const focusThrottleInterval = 4000;
-    const fetcher = vi.fn(defaultFetcher);
-
-    useInjectedSetup(
-      () =>
-        configureGlobalSWR({
-          cacheProvider,
-          focusThrottleInterval,
-          revalidateOnFocus: true,
-        }),
-      () => useSWR(defaultKey, fetcher, defaultOptions),
-    );
-
-    dispatchEvent('focus', document);
-    expect(fetcher).toBeCalledTimes(1);
-
-    vi.advanceTimersByTime(focusThrottleInterval - 1);
-    dispatchEvent('focus', document);
-    expect(fetcher).toBeCalledTimes(1);
-
-    vi.advanceTimersByTime(1);
-    dispatchEvent('focus', document);
-    expect(fetcher).toBeCalledTimes(2);
-    await flushPromises();
-
-    vi.advanceTimersByTime(focusThrottleInterval - 1);
-    dispatchEvent('focus', document);
-    expect(fetcher).toBeCalledTimes(2);
-  });
-
   it('should not revalidate when focus if config revalidateOnFocus is false', async () => {
     setDataToMockedCache(defaultKey, { data: 'cachedData' });
 
@@ -166,40 +78,6 @@ describe('useSWR', () => {
 
     await flushPromises();
     expect(fetcher).toBeCalledTimes(1);
-    expect(data.value).toBe('FetcherResult');
-  });
-
-  it('should not revalidate if revalidateIfStale is false', async () => {
-    setDataToMockedCache(defaultKey, { data: 'cachedData' });
-
-    const fetcher = vi.fn().mockResolvedValue('FetcherResult');
-    const { data } = useInjectedSetup(
-      () => configureGlobalSWR({ cacheProvider }),
-      () =>
-        useSWR(defaultKey, fetcher, {
-          ...defaultOptions,
-          revalidateIfStale: false,
-        }),
-    );
-
-    await flushPromises();
-    expect(fetcher).toBeCalledTimes(0);
-    expect(data.value).toBe('cachedData');
-  });
-
-  it('should revalidate when back online', async () => {
-    setDataToMockedCache(defaultKey, { data: 'cachedData' });
-
-    const fetcher = vi.fn().mockResolvedValue('FetcherResult');
-    const { data } = useInjectedSetup(
-      () => configureGlobalSWR({ cacheProvider }),
-      () => useSWR(defaultKey, fetcher, defaultOptions),
-    );
-
-    dispatchEvent('online', document);
-
-    await flushPromises();
-    expect(fetcher).toBeCalledTimes(2);
     expect(data.value).toBe('FetcherResult');
   });
 
@@ -277,73 +155,6 @@ describe('useSWR', () => {
     expect(fetcher).not.toHaveBeenCalled();
   });
 
-  it('should change local data variable value when mutate resolves', async () => {
-    setDataToMockedCache(defaultKey, { data: 'cachedData' });
-
-    const { mutate, data } = useInjectedSetup(
-      () => configureGlobalSWR({ cacheProvider }),
-      () => useSWR(defaultKey, () => 'FetcherResult'),
-    );
-
-    expect(data.value).toEqual('cachedData');
-    await mutate(() => 'newValue');
-
-    expect(data.value).toEqual('newValue');
-  });
-
-  it('should change local data variable value when mutate is called with `optimistcData`', async () => {
-    setDataToMockedCache(defaultKey, { data: 'cachedData' });
-
-    const { mutate, data } = useInjectedSetup(
-      () => configureGlobalSWR({ cacheProvider }),
-      () => useSWR(defaultKey, () => 'FetcherResult'),
-    );
-
-    expect(data.value).toEqual('cachedData');
-
-    mutate(() => setTimeoutPromise(1000, 'newValue'), { optimisticData: 'optimistcData' });
-    await nextTick();
-    expect(data.value).toEqual('optimistcData');
-  });
-
-  it('should update all hooks with the same key when call mutates', async () => {
-    setDataToMockedCache(defaultKey, { data: 'cachedData' });
-
-    const { datas, mutate, differentData } = useInjectedSetup(
-      () => configureGlobalSWR({ cacheProvider }),
-      () => {
-        const { data: data1, mutate: localMutate } = useSWR(defaultKey, defaultFetcher);
-        const { data: data2 } = useSWR(defaultKey, defaultFetcher);
-        const { data: data3 } = useSWR(defaultKey, defaultFetcher);
-        const { data: data4 } = useSWR(defaultKey, defaultFetcher);
-        const { data: differentData1 } = useSWR('key-2', () => 'should not change');
-
-        return {
-          differentData: differentData1,
-          datas: [data1, data2, data3, data4],
-          mutate: localMutate,
-        };
-      },
-    );
-
-    expect(datas.map((data) => data.value)).toEqual([
-      'cachedData',
-      'cachedData',
-      'cachedData',
-      'cachedData',
-    ]);
-
-    await mutate(() => 'mutated value');
-    expect(datas.map((data) => data.value)).toEqual([
-      'mutated value',
-      'mutated value',
-      'mutated value',
-      'mutated value',
-    ]);
-
-    expect(differentData.value).toEqual('should not change');
-  });
-
   it('should not refresh if refreshInterval = 0', async () => {
     const fetcher = vi.fn(defaultFetcher);
 
@@ -399,6 +210,8 @@ describe('useSWR', () => {
     expect(fetcher).toHaveBeenCalledOnce();
 
     vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+    dispatchEvent('offline', window);
+
     vi.advanceTimersByTime(refreshInterval * 3);
     expect(fetcher).toHaveBeenCalledOnce();
   });

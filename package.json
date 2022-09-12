@@ -35,6 +35,7 @@
     "test": "vitest run",
     "test:watch": "vitest watch",
     "test:coverage": "vitest run --coverage",
+    "test:types": "tsd",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:serve": "vitepress serve docs"
@@ -65,11 +66,12 @@
     "lint-staged": "^13.0.3",
     "prettier": "^2.7.1",
     "semantic-release": "^19.0.3",
+    "tsd": "^0.23.0",
     "typescript": "^4.7.4",
-    "vite": "^3.0.9",
+    "vite": "^3.1.0",
     "vite-plugin-dts": "^1.4.1",
     "vitepress": "1.0.0-alpha.4",
-    "vitest": "^0.22.1",
+    "vitest": "^0.23.2",
     "vue": "^3.2.37",
     "vue-tsc": "^0.38.2"
   },
@@ -105,5 +107,8 @@
         "react-dom"
       ]
     }
+  },
+  "tsd": {
+    "directory": "lib"
   }
 }

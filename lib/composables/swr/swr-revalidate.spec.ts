@@ -1,7 +1,15 @@
 import flushPromises from 'flush-promises';
+import { nextTick } from 'vue';
 
 import { SWRComposableConfig } from '@/types';
-import { useInjectedSetup, mockedCache, setDataToMockedCache, dispatchEvent } from '@/utils/test';
+import {
+  useInjectedSetup,
+  mockedCache,
+  setDataToMockedCache,
+  dispatchEvent,
+  useSetup,
+} from '@/utils/test';
+import { globalState } from '@/config';
 
 import { useSWR } from '.';
 import { configureGlobalSWR } from '../global-swr-config';
@@ -11,28 +19,24 @@ const defaultKey = 'defaultKey';
 const defaultFetcher = vi.fn((key: string) => key);
 const defaultOptions: SWRComposableConfig = { dedupingInterval: 0 };
 
+const useSWRWrapped: typeof useSWR = (...params) => {
+  return useInjectedSetup(
+    () => configureGlobalSWR({ cacheProvider }),
+    () => useSWR(...params),
+  );
+};
+
 describe('useSWR - Revalidate', () => {
   beforeEach(() => {
-    vi.resetAllMocks();
     cacheProvider.clear();
+    globalState.delete(cacheProvider);
 
     vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
     vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
   });
 
-  beforeAll(() => {
-    vi.useFakeTimers();
-  });
-
-  afterAll(() => {
-    vi.useRealTimers();
-  });
-
   it('should return cached value first then revalidate', async () => {
-    setDataToMockedCache(defaultKey, {
-      data: 'cachedData',
-      fetchedIn: new Date(),
-    });
+    setDataToMockedCache(defaultKey, { data: 'cachedData' });
 
     const fetcher = vi.fn(
       () =>
@@ -41,10 +45,7 @@ describe('useSWR - Revalidate', () => {
         }),
     );
 
-    const { data: swrData } = useInjectedSetup(
-      () => configureGlobalSWR({ cacheProvider }),
-      () => useSWR(defaultKey, fetcher, defaultOptions),
-    );
+    const { data: swrData } = useSWRWrapped(defaultKey, fetcher, defaultOptions);
 
     expect(swrData.value).toBe('cachedData');
 
@@ -54,88 +55,104 @@ describe('useSWR - Revalidate', () => {
     expect(swrData.value).toBe('FetcherResult');
   });
 
-  it('should revalidate when focus page', async () => {
-    setDataToMockedCache(defaultKey, { data: 'cachedData' });
+  describe('focus', () => {
+    const dispatchWindowFocus = async () => {
+      dispatchEvent('blur', window);
+      await nextTick();
 
-    const fetcher = vi.fn().mockResolvedValue('FetcherResult');
-    const { data } = useInjectedSetup(
-      () => configureGlobalSWR({ cacheProvider, focusThrottleInterval: 0 }),
-      () => useSWR(defaultKey, fetcher, defaultOptions),
-    );
+      dispatchEvent('focus', window);
+      await nextTick();
+    };
 
-    dispatchEvent('focus', document);
+    it('should revalidate when focus page', async () => {
+      setDataToMockedCache(defaultKey, { data: 'cachedData' });
 
-    await flushPromises();
-    expect(fetcher).toBeCalledTimes(2);
-    expect(data.value).toBe('FetcherResult');
-  });
+      const fetcher = vi.fn().mockResolvedValue('FetcherResult');
+      const { data } = useSWRWrapped(defaultKey, fetcher, {
+        dedupingInterval: 0,
+        focusThrottleInterval: 0,
+      });
 
-  it('should revalidate on focus just once inside focusThrottleInterval time span', async () => {
-    setDataToMockedCache(defaultKey, { data: 'cachedData' });
+      fetcher.mockClear();
 
-    const focusThrottleInterval = 4000;
-    const fetcher = vi.fn(defaultFetcher);
+      await dispatchWindowFocus();
+      await flushPromises();
 
-    useInjectedSetup(
-      () =>
-        configureGlobalSWR({
-          cacheProvider,
-          focusThrottleInterval,
-          revalidateOnFocus: true,
-        }),
-      () => useSWR(defaultKey, fetcher, defaultOptions),
-    );
+      expect(fetcher).toBeCalledTimes(1);
+      expect(data.value).toBe('FetcherResult');
+    });
 
-    dispatchEvent('focus', document);
-    expect(fetcher).toBeCalledTimes(1);
+    it('should revalidate on focus just once inside focusThrottleInterval time span', async () => {
+      setDataToMockedCache(defaultKey, { data: 'cachedData' });
 
-    vi.advanceTimersByTime(focusThrottleInterval - 1);
-    dispatchEvent('focus', document);
-    expect(fetcher).toBeCalledTimes(1);
+      const focusThrottleInterval = 4000;
+      const fetcher = vi.fn(defaultFetcher);
 
-    vi.advanceTimersByTime(1);
-    dispatchEvent('focus', document);
-    expect(fetcher).toBeCalledTimes(2);
-    await flushPromises();
+      useSWRWrapped(defaultKey, fetcher, {
+        focusThrottleInterval,
+        revalidateOnFocus: true,
+      });
 
-    vi.advanceTimersByTime(focusThrottleInterval - 1);
-    dispatchEvent('focus', document);
-    expect(fetcher).toBeCalledTimes(2);
-  });
+      await nextTick();
+      fetcher.mockClear();
 
-  it('should not revalidate when focus if config revalidateOnFocus is false', async () => {
-    setDataToMockedCache(defaultKey, { data: 'cachedData' });
+      await dispatchWindowFocus();
+      expect(fetcher).toBeCalledTimes(0);
 
-    const fetcher = vi.fn().mockResolvedValue('FetcherResult');
-    const { data } = useInjectedSetup(
-      () => configureGlobalSWR({ cacheProvider }),
-      () =>
-        useSWR(defaultKey, fetcher, {
-          ...defaultOptions,
-          revalidateOnFocus: false,
-        }),
-    );
+      vi.advanceTimersByTime(focusThrottleInterval - 1);
+      await dispatchWindowFocus();
+      expect(fetcher).toBeCalledTimes(0);
 
-    dispatchEvent('blur', document);
-    dispatchEvent('focus', document);
+      vi.advanceTimersByTime(2);
+      await dispatchWindowFocus();
+      expect(fetcher).toBeCalledTimes(1);
 
-    await flushPromises();
-    expect(fetcher).toBeCalledTimes(1);
-    expect(data.value).toBe('FetcherResult');
+      await flushPromises();
+      vi.advanceTimersByTime(focusThrottleInterval - 1);
+      await dispatchWindowFocus();
+      expect(fetcher).toBeCalledTimes(1);
+    });
+
+    it('should not revalidate when focus if config revalidateOnFocus is false', async () => {
+      setDataToMockedCache(defaultKey, { data: 'cachedData' });
+
+      const fetcher = vi.fn().mockResolvedValue('FetcherResult');
+      const { data } = useSWRWrapped(defaultKey, fetcher, {
+        ...defaultOptions,
+        revalidateOnFocus: false,
+      });
+
+      await dispatchWindowFocus();
+      await flushPromises();
+
+      expect(fetcher).toBeCalledTimes(1);
+      expect(data.value).toBe('FetcherResult');
+    });
+
+    it('should remove focus listeners when unmount component', async () => {
+      const fetcher = vi.fn(defaultFetcher);
+      const instance = useSetup(() => useSWR(defaultKey, fetcher, { revalidateOnFocus: true }));
+
+      await nextTick();
+      fetcher.mockClear();
+
+      vi.advanceTimersByTime(10_000);
+
+      instance.unmount();
+      await dispatchWindowFocus();
+
+      expect(fetcher).not.toHaveBeenCalled();
+    });
   });
 
   it('should not revalidate if revalidateIfStale is false', async () => {
     setDataToMockedCache(defaultKey, { data: 'cachedData' });
 
     const fetcher = vi.fn().mockResolvedValue('FetcherResult');
-    const { data } = useInjectedSetup(
-      () => configureGlobalSWR({ cacheProvider }),
-      () =>
-        useSWR(defaultKey, fetcher, {
-          ...defaultOptions,
-          revalidateIfStale: false,
-        }),
-    );
+    const { data } = useSWRWrapped(defaultKey, fetcher, {
+      ...defaultOptions,
+      revalidateIfStale: false,
+    });
 
     await flushPromises();
     expect(fetcher).toBeCalledTimes(0);
@@ -143,33 +160,39 @@ describe('useSWR - Revalidate', () => {
   });
 
   it('should revalidate when back online', async () => {
-    setDataToMockedCache(defaultKey, { data: 'cachedData' });
+    let value = 1;
 
-    const fetcher = vi.fn().mockResolvedValue('FetcherResult');
-    const { data } = useInjectedSetup(
-      () => configureGlobalSWR({ cacheProvider }),
-      () => useSWR(defaultKey, fetcher, defaultOptions),
-    );
+    // eslint-disable-next-line no-plusplus
+    const fetcher = vi.fn(() => Promise.resolve(value++));
 
-    dispatchEvent('online', document);
+    const { data } = useSWRWrapped(defaultKey, fetcher, defaultOptions);
 
     await flushPromises();
-    expect(fetcher).toBeCalledTimes(2);
-    expect(data.value).toBe('FetcherResult');
+    fetcher.mockClear();
+    expect(data.value).toBe(1);
+
+    // Go offline
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+    dispatchEvent('offline', window);
+
+    // Go online
+    await nextTick();
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
+    dispatchEvent('online', window);
+
+    await flushPromises();
+    expect(fetcher).toBeCalledTimes(1);
+    expect(data.value).toBe(2);
   });
 
   it('should not revalidate when back online if config revalidateOnReconnect is false', async () => {
     setDataToMockedCache(defaultKey, { data: 'cachedData' });
 
     const fetcher = vi.fn().mockResolvedValue('FetcherResult');
-    const { data } = useInjectedSetup(
-      () => configureGlobalSWR({ cacheProvider }),
-      () =>
-        useSWR(defaultKey, fetcher, {
-          ...defaultOptions,
-          revalidateOnReconnect: false,
-        }),
-    );
+    const { data } = useSWRWrapped(defaultKey, fetcher, {
+      ...defaultOptions,
+      revalidateOnReconnect: false,
+    });
 
     dispatchEvent('online', document);
 

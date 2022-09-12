@@ -37,6 +37,7 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     clearMocks: true,
+    setupFiles: ['./vitest.setup.ts'],
 
     coverage: {
       provider: 'istanbul',
