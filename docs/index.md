@@ -8,12 +8,16 @@ SWR derives from `stale-while-revalidate`, a HTTP cache technique. This techniqu
 
 ## Features
 
+- Fast and reusable data fetching
 - Typescript friendly
 - Protocol agnostic
 - Request lib agnostic
 - Integrated cache
 - Optimistic UI
 - Request deduplication
+- Revalidation on focus and network recovery
+- Polling
+- Configurable
 
 ## Comunity
 

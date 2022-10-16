@@ -55,9 +55,9 @@ const useArticle = (id) => {
 
   return {
     error,
-    hasError: !!error.value,
     article: data,
-    isLoading: !error.value && !data.value,
+    hasError: computed(() => !!error.value),
+    isLoading: computed(() => !error.value && !data.value),
   }
 }
 ```

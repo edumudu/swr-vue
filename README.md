@@ -15,6 +15,21 @@
 
 `swr-vue` is a Vue composables library for data fetching.
 
+The name “**SWR**” is derived from `stale-while-revalidate`, a cache invalidation strategy popularized by [HTTP RFC 5861](https://tools.ietf.org/html/rfc5861).
+**SWR** first returns the data from cache (stale), then sends the request (revalidate), and finally comes with the up-to-date data again.
+
+#### Features
+
+- Fast and reusable data fetching
+- Transport and protocol agnostic
+- Built-in cache and request dedulication
+- Revalidation on focus
+- Revalidation on network recovery
+- Polling
+- Local mutation (Optimistic UI)
+- Type safe
+- Configurable
+
 For a more details you can visit the [documentation](https://edumudu.github.io/swr-vue/)
 
 If you are looking to contribute, please check [CONTRIBUTING.md](./CONTRIBUTING.md)

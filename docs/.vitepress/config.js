@@ -59,7 +59,9 @@ function sidebar() {
         { text: 'Global Configuration', link: '/global-configuration' },
         { text: 'Data Fetching', link: '/data-fetching' },
         { text: 'Error Handling', link: '/error-handling' },
+        { text: 'Revalidation', link: '/revalidation' },
         { text: 'Conditional Fetching', link: '/conditional-fetching' },
+        { text: 'Typescript', link: '/typescript' },
       ]
     },
     {

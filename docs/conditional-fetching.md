@@ -2,7 +2,7 @@
 
 ## Conditional
 
-Use any [falsy](https://developer.mozilla.org/docs/Glossary/Falsy) value or pass a function as key to conditionally fetch data. If the function throws or returns a [falsy](https://developer.mozilla.org/docs/Glossary/Falsy) value, the `useSWR` not start the request.
+Use any [falsy](https://developer.mozilla.org/docs/Glossary/Falsy) value or pass a function as key to conditionally fetch data. If the function throws or returns a [falsy](https://developer.mozilla.org/docs/Glossary/Falsy) value, the `useSWR` will not start the request.
 
 ```ts
 // conditionally fetch

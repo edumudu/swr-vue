@@ -26,5 +26,11 @@ const { data, error, isValidating, mutate } = useSWR(key, fetcher, options)
 - `fallback` - a key-value object of multiple fallback data
 - `fallbackData` - initial data to be returned (this has priority over `fallback` option)
 - `focusThrottleInterval = 5000` - only revalidate on focus once during a time span in milliseconds
+- `refreshInterval = 0` - [(details)](./revalidation.md#revalidate-on-interval)
+  - Disabled by default: `refreshInterval = 0`
+  - If set to a number, polling interval in milliseconds
+  - If set to a function, the function will receive the latest data and should return the interval in milliseconds
+- `refreshWhenHidden = false` - polling when the window is invisible (if refreshInterval is enabled),
+- `refreshWhenOffline = false` - polling when the browser is offline (determined by navigator.onLine),
 - `onSuccess(data, key, config)` - callback function when a request finishes successfully
 - `onError(err, key, config)` - callback function when a request returns an error
