@@ -95,10 +95,14 @@ export const useSetupInServer = <V>(setup: () => V) => {
 
 export const mockedCache = reactive<CacheProvider>(new Map());
 
-export const setDataToMockedCache = (key: Key, data: UnwrapRef<Partial<CacheState>>) => {
+export const setDataToMockedCache = (
+  key: Key,
+  data: UnwrapRef<Partial<CacheState>>,
+  cache = mockedCache,
+) => {
   const { key: serializedKey } = serializeKey(key);
 
-  mockedCache.set(serializedKey, {
+  cache.set(serializedKey, {
     error: data.error,
     data: data.data,
     isValidating: data.isValidating || false,
@@ -106,10 +110,10 @@ export const setDataToMockedCache = (key: Key, data: UnwrapRef<Partial<CacheStat
   });
 };
 
-export const getDataFromMockedCache = (key: Key) => {
+export const getDataFromMockedCache = (key: Key, cache = mockedCache) => {
   const { key: serializedKey } = serializeKey(key);
 
-  return mockedCache.get(serializedKey);
+  return cache.get(serializedKey);
 };
 
 export const dispatchEvent = (eventName: string, target: Element | Window | Document) => {

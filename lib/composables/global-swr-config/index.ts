@@ -1,9 +1,9 @@
-import { computed, inject, provide, unref, shallowReadonly, toRefs } from 'vue';
+import { computed, inject, provide, unref, shallowReadonly, toRefs, ref } from 'vue';
 import { MaybeRef } from '@vueuse/core';
 
 import { defaultConfig, globalConfigKey } from '@/config';
-import { AnyFunction, Key, SWRConfig } from '@/types';
-import { isUndefined, mergeConfig, serializeKey } from '@/utils';
+import { AnyFunction, CacheState, Key, SWRConfig } from '@/types';
+import { isUndefined, mergeConfig, serializeKey, isFunction } from '@/utils';
 import { useScopeState } from '@/composables/scope-state';
 
 export type MutateOptions = {
@@ -11,6 +11,13 @@ export type MutateOptions = {
   rollbackOnError?: boolean;
   revalidate?: boolean;
 };
+
+const createCacheState = (data: unknown): CacheState => ({
+  data,
+  error: undefined,
+  isValidating: false,
+  fetchedIn: new Date(),
+});
 
 export const useSWRConfig = () => {
   const contextConfig = inject(
@@ -28,18 +35,17 @@ export const useSWRConfig = () => {
     options: MutateOptions = {},
   ) => {
     const { key } = serializeKey(_key);
-    const cacheState = contextConfig.value.cacheProvider.get(key);
+    const cache = cacheProvider.value;
+    const cacheState = cache.get(key);
+    const hasCache = !isUndefined(cacheState);
     const { optimisticData, rollbackOnError, revalidate = true } = options;
 
-    if (!cacheState) return;
-
-    const { data } = toRefs(cacheState);
+    const { data } = hasCache ? toRefs(cacheState) : { data: ref() };
     const dataInCache = data.value;
 
-    const resultPromise: unknown | Promise<unknown> =
-      typeof updateFnOrPromise === 'function'
-        ? updateFnOrPromise(cacheState.data)
-        : updateFnOrPromise;
+    const resultPromise: unknown | Promise<unknown> = isFunction(updateFnOrPromise)
+      ? updateFnOrPromise(dataInCache)
+      : updateFnOrPromise;
 
     if (optimisticData) {
       data.value = optimisticData;
@@ -54,6 +60,8 @@ export const useSWRConfig = () => {
 
       throw error;
     }
+
+    cache.set(key, hasCache ? cacheState : createCacheState(data));
 
     const revalidationCallbackcs = revalidateCache.value.get(key) || [];
 
