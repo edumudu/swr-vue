@@ -1,5 +1,3 @@
-import { DeepReadonly } from 'vue';
-
 import { expectType } from '@/utils/type-assertions';
 
 import { useSWR } from '.';
@@ -20,9 +18,9 @@ type Person = {
 
   expectType<string | undefined>(data1.value);
   expectType<number | undefined>(data2.value);
-  expectType<readonly string[] | undefined>(data3.value);
+  expectType<string[] | undefined>(data3.value);
   expectType<boolean | undefined>(data4.value);
-  expectType<DeepReadonly<Person> | undefined>(data5.value);
+  expectType<Person | undefined>(data5.value);
 }
 
 // Generics
