@@ -1,4 +1,4 @@
-import { computed, readonly, watch, toRefs, unref, customRef, onUnmounted } from 'vue';
+import { computed, shallowReadonly, watch, toRefs, unref, customRef, onUnmounted } from 'vue';
 import {
   createUnrefFn,
   toReactive,
@@ -202,9 +202,9 @@ export const useSWR = <Data = any, Error = any>(
   }
 
   return {
-    data: readonly(data),
-    error: readonly(error),
-    isValidating: readonly(isValidating),
+    data: shallowReadonly(data),
+    error: shallowReadonly(error),
+    isValidating: shallowReadonly(isValidating),
     mutate: (...params: OmitFirstArrayIndex<Parameters<typeof mutate>>) =>
       mutate(unref(_key), ...params),
   };
