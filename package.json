@@ -71,14 +71,15 @@
     "vite": "^3.1.0",
     "vite-plugin-dts": "^1.4.1",
     "vitepress": "1.0.0-alpha.4",
-    "vitest": "^0.23.2",
-    "vue": "^3.2.37",
+    "vitest": "^0.24.3",
+    "vue": "^3.2.41",
     "vue-tsc": "^0.38.2"
   },
   "peerDependencies": {
     "vue": "^3.2.33"
   },
   "dependencies": {
+    "@vue/devtools-api": "^6.4.3",
     "@vueuse/core": "^9.1.1"
   },
   "lint-staged": {

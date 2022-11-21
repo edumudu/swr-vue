@@ -18,6 +18,7 @@ export type SWRFetcher<Data> =
   | (() => FetcherResponse<Data>);
 
 export interface CacheProvider<Data = CacheState> {
+  entries(): IterableIterator<[string, Data]>;
   keys(): IterableIterator<string>;
   has(key: Key): boolean;
   get(key: Key): Data | undefined;
