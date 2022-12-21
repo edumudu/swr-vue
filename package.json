@@ -98,7 +98,7 @@
     "stale-while-revalidate"
   ],
   "engines": {
-    "node": "16"
+    "node": ">=16"
   },
   "pnpm": {
     "peerDependencyRules": {
