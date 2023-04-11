@@ -49,6 +49,7 @@ function sidebar() {
     {
       text: 'Introduction',
       items: [
+        { text: 'About', link: '/introduction' },
         { text: 'Getting started', link: '/getting-started' },
       ]
     },

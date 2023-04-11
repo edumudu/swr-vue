@@ -27,3 +27,7 @@ dist-ssr
 
 # test
 coverage
+
+# docs
+docs/.vitepress/dist/*
+docs/.vitepress/cache/*
