@@ -22,6 +22,7 @@ features:
     details: In case you need help, you can start a discussion in the GitHub Discussions.
     link: https://github.com/edumudu/swr-vue/discussions
     linkText: Start a discussion
+    icon: 📝
   - title: Type Strong
     details: Written in TypeScript, with full TS docs
     icon: 🦾
