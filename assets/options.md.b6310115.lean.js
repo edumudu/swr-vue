@@ -1,0 +1,1 @@
+import{_ as e,c as a,o,N as t}from"./chunks/framework.4fa43063.js";const y=JSON.parse('{"title":"API Options","description":"","frontmatter":{},"headers":[],"relativePath":"options.md","lastUpdated":1681257585000}'),l={name:"options.md"},n=t("",8),s=[n];function i(r,c,d,p,u,h){return o(),a("div",null,s)}const m=e(l,[["render",i]]);export{y as __pageData,m as default};
