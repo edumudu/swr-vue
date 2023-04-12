@@ -1,1 +1,0 @@
-import{_ as e,c as t,o as a,N as r}from"./chunks/framework.4fa43063.js";const f=JSON.parse('{"title":"SWR Vue","description":"","frontmatter":{},"headers":[],"relativePath":"introduction.md","lastUpdated":1681257585000}'),i={name:"introduction.md"},o=r("",8),s=[o];function l(n,c,u,d,h,p){return a(),t("div",null,s)}const b=e(i,[["render",l]]);export{f as __pageData,b as default};

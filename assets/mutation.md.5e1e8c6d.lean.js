@@ -1,1 +1,0 @@
-import{_ as s,c as a,o as n,N as l}from"./chunks/framework.4fa43063.js";const A=JSON.parse('{"title":"Mutation","description":"","frontmatter":{},"headers":[],"relativePath":"mutation.md","lastUpdated":1681257585000}'),o={name:"mutation.md"},p=l("",19),t=[p];function e(c,r,F,y,D,i){return n(),a("div",null,t)}const d=s(o,[["render",e]]);export{A as __pageData,d as default};
